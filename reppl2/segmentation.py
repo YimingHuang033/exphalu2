@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from typing import Optional
 
 
@@ -19,8 +20,14 @@ def _split_sentences(text: str) -> list[str]:
     return [p for p in parts if p.strip()]
 
 
+_CLAUSE_SPLIT = re.compile(r"[,;:，；：]")
+
+
 def segment_input(example, tokenizer=None, max_units: int = 8) -> list[dict]:
-    """Produce input units with char spans. Sources: system (non-factual), question sentences, RAG paragraphs."""
+    """Produce input units with char spans. Sources: system (non-factual), question sentences,
+    RAG paragraphs. Single-sentence questions without context are split into clause
+    fragments so that J>=2; with J=1 the cross-unit softmax is degenerate (w==1 for the
+    only unit, Inner==0) and that degenerate case must not pass silently."""
     units: list[dict] = []
     uid = 0
     if example.system_prompt:
@@ -38,13 +45,32 @@ def segment_input(example, tokenizer=None, max_units: int = 8) -> list[dict]:
                 "source": "rag_paragraph", "is_factual": True,
             })
             uid += 1
+    factual_units = []
     for s in _split_sentences(example.question)[:max_units]:
         start = example.question.find(s)
-        units.append({
+        factual_units.append({
             "unit_id": uid, "text": s, "char_start": start, "char_end": start + len(s),
             "source": "question_sentence", "is_factual": True,
         })
         uid += 1
+    if len(factual_units) == 1 and not example.context:
+        u = factual_units[0]
+        clauses = [c for c in _CLAUSE_SPLIT.split(u["text"]) if c.strip()]
+        if len(clauses) >= 2:
+            factual_units = []
+            cursor = 0
+            for c in clauses:
+                c = c.strip()
+                start = u["text"].find(c, cursor)
+                factual_units.append({
+                    "unit_id": uid, "text": c,
+                    "char_start": u["char_start"] + start,
+                    "char_end": u["char_start"] + start + len(c),
+                    "source": "question_clause", "is_factual": True,
+                })
+                uid += 1
+                cursor = start + len(c)
+    units.extend(factual_units)
     if not any(u["is_factual"] for u in units):
         raise SegmentationError("no factual input unit found")
     return units

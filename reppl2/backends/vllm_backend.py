@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from .base import InferenceBackend, BackendError
 
 
@@ -27,10 +29,27 @@ class VLLMBackend(InferenceBackend):
         if self.logger is not None:
             self.logger.info(f"[vllm] {msg}")
 
+    def _load_with_retry(self, kwargs: dict, what: str):
+        from vllm import LLM
+
+        last_err = None
+        for attempt in range(3):
+            try:
+                self._log(f"loading {what} (attempt {attempt + 1}): {kwargs}")
+                return LLM(**kwargs)
+            except Exception as e:
+                msg = str(e)
+                if "Free memory" in msg or "Engine core initialization failed" in msg \
+                        or "GPU memory" in msg:
+                    last_err = e
+                    self._log(f"{what} load hit busy GPU; waiting 60s for a dying engine core")
+                    time.sleep(60.0)
+                    continue
+                raise
+        raise BackendError(f"{what} failed after retries: {last_err}")
+
     def _gen_engine(self):
         if self._gen_llm is None:
-            from vllm import LLM
-
             kwargs = dict(
                 model=self.model_path,
                 runner="generate",
@@ -40,14 +59,11 @@ class VLLMBackend(InferenceBackend):
                 dtype=str(self.cfg.get("dtype", "bfloat16")),
                 seed=int(self.cfg.get("seed", 42)),
             )
-            self._log(f"loading generate runner: {kwargs}")
-            self._gen_llm = LLM(**kwargs)
+            self._gen_llm = self._load_with_retry(kwargs, "generate runner")
         return self._gen_llm
 
     def _pool_engine(self):
         if self._pool_llm is None:
-            from vllm import LLM
-
             kwargs = dict(
                 model=self.model_path,
                 runner="pooling",
@@ -58,8 +74,7 @@ class VLLMBackend(InferenceBackend):
                 dtype=str(self.cfg.get("dtype", "bfloat16")),
                 seed=int(self.cfg.get("seed", 42)),
             )
-            self._log(f"loading pooling runner: {kwargs}")
-            self._pool_llm = LLM(**kwargs)
+            self._pool_llm = self._load_with_retry(kwargs, "pooling runner")
         return self._pool_llm
 
     def release_generate_engine(self):

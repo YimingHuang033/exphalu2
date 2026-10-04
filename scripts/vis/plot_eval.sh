@@ -12,5 +12,5 @@ exec > >(tee -a "$LOG") 2>&1
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate tim
 cd "$ROOT"
-python scripts/vis/plot_eval.py --run-dir "results/$CATEGORY/$RUN_ID" --out-dir "vis/$CATEGORY"
+python scripts/vis/plot_eval.py --run-dir "results/$CATEGORY/$RUN_ID" --out-dir "vis/$CATEGORY" || exit 1
 echo "vis OK: $ROOT/vis/$CATEGORY; log=$LOG"

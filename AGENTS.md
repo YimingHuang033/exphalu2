@@ -11,8 +11,9 @@
 
 ## 环境
 
-- conda `tim`（Python 3.11，torch 2.9.1，transformers 4.57，vLLM 升级至 0.30.0 中）。
+- conda `tim`（Python 3.11；vLLM 0.15.1 → 0.30.0 升级中，携带 torch 2.13.0 + transformers 5.18.0；升级完成后用 `bash scripts/smoke/run_smoke.sh config/smoke.yaml qwen3_5_4b vllm` 复验 Qwen3.5-4B）。
 - GPU：2× RTX 4090。模型与 `/mnt/data` 磁盘有坏道（详见 README 已知问题）；`Qwen3.5-4B` 用 `/home/tim/Proj/resource/` 副本。
+- vLLM 实机约束：generate/pooling 两 runner 分时加载；引擎核心进程退出有延迟，连续任务间需等显存释放（backend 已内置重试）。
 
 ## 常用命令
 

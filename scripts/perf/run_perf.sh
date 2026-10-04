@@ -17,7 +17,7 @@ BACKEND=${3:-vllm}
 RUN_ID="perf-$TS"
 
 python -m reppl2.cli perf --config "$CONFIG" --category perf --run-id "$RUN_ID" \
-  --model "$MODEL" --backend "$BACKEND" --strict-env
+  --model "$MODEL" --backend "$BACKEND" --strict-env || exit 1
 echo "PERF OK: run_id=$RUN_ID"
 echo "results: $ROOT/results/perf/$RUN_ID (perf.csv, perf_summary.json)"
 echo "log:     $LOG"

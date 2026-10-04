@@ -65,13 +65,28 @@ bash scripts/vis/plot_eval.sh <category> <run_id>
 
 ## 已知问题与 blocked 清单（如实记录）
 
-1. **`/mnt/data`（/dev/sda）磁盘坏道**：`Qwen3-4B/model-00001-of-00003.safetensors` 出现 I/O error，mmap 触发 SIGBUS。该模型本机不可用；`trivia_qa` 数据与其余已扫描模型读取正常。`Qwen3.5-4B` 使用 `/home/tim/Proj/resource` 副本。
-2. **SGLang**：环境未安装，backend 报 `BackendError`（无静默回退）。
-3. **Qwen3.5-4B 原生支持**：vLLM 0.15.1 注册表无 `Qwen3_5*`；已后台升级 vLLM 0.30.0（完成后用 `scripts/smoke/verify_backend.sh config/smoke.yaml qwen3_5_4b vllm` 复验），升级前可用 `config/smoke_transformers.yaml`（legacy 端口）运行。
+1. **`/mnt/data`（/dev/sda）磁盘坏道**：`Qwen3-4B/model-00001-of-00003.safetensors` 出现 I/O error（`dd` 可复现），mmap 触发 SIGBUS。该模型本机不可用；`trivia_qa` 数据与其余已扫描模型读取正常。`Qwen3.5-4B` 使用 `/home/tim/Proj/resource` 副本。
+2. **Qwen3.5-4B 引擎原生支持**：vLLM 0.15.1 注册表无 `Qwen3_5*`；Transformers 4.57.6 同样不识别 `qwen3_5` 架构（冒烟实测）。已下载 vLLM 0.30.0 wheel（携带 torch 2.13.0 + transformers 5.18.0）后台安装中；完成后运行 `bash scripts/smoke/run_smoke.sh config/smoke.yaml qwen3_5_4b vllm` 复验，并把结果补记到本节。
+3. **SGLang**：环境未安装，backend 显式报 `BackendError`（无静默回退）。
 4. **数据集**：SQuAD/CoQA 原始 JSON 在未挂载的外置盘，适配器已实现但 blocked（在 config 填路径即启用）；NQ 无本地文件。
 5. **P0/P1 强基线**（SeSE/HAD/D-Score/RAUQ/LAFaCT/LaaB/Semantic Energy）：本轮未实现，注册表状态 `planned`（`reppl2/baselines/registry.py`），详见 DESIGN.md 附录 P3-S5。
 6. **多轮工具调用轨迹**：适配器未接，`planned`。
-7. **小样本观察**（16 条 triviaqa，Qwen2.5-0.5B）：`eigenscore-last` AUROC≈0（方向与预期相反）；样本量不足以定论，正式实验前需在更大样本上复核方向约定。
+7. **J=1 退化**：无上下文且单句的问题只有一个事实单元，跨单元 softmax 恒为 1，Inner≈0（risk 退化为 ε·Outer）。segmentation 已对单句问题做子句切分兜底，但语义单元质量有限；有 RAG 上下文的任务（squad 类）才能充分体现 A/B 的输入定位价值。
+8. **小样本观察**（16 条 triviaqa，Qwen2.5-0.5B，judge 标出 2 正例）：`eigenscore-last` AUROC≈0（方向与原论文预期相反）；样本量不足以定论，正式实验前需在更大样本上复核方向约定。其余方法（reppl-a/b、outer-perplexity、lnpe、judge-continuous）在该小样本上 AUROC=1.0，仅作管线验证、不作性能结论。
+
+## 已完成的验证记录（2026-10-04）
+
+| 项 | 模型 | 后端 | 结果 |
+|---|---|---|---|
+| 固定数组数学测试（27 项） | - | - | ✅ 通过 |
+| verify-backend 端到端（采样/logprob 对齐 max diff 0.0017/token_embed 末层状态） | Qwen2.5-0.5B | vLLM 0.15.1 | ✅ 通过 |
+| 冒烟全链（generate→detect(A/B+5 baselines)→judge→evaluate→eval.csv） | Qwen2.5-0.5B | vLLM 0.15.1 | ✅ 通过（results/smoke/smoke-20261004-152451） |
+| 冒烟全链（legacy 端口） | Qwen2.5-0.5B | Transformers | ✅ 通过（results/smoke/smoke-20261004-152901） |
+| 真实数据评测（triviaqa 16 样本，judge 2 正例，AUROC 全表） | Qwen2.5-0.5B | vLLM 0.15.1 | ✅ 通过（results/generation_eval/geneval-20261004-153006） |
+| perf 两阶段基准 | Qwen2.5-0.5B | vLLM 0.15.1 | ✅ 通过（results/perf/） |
+| interp 解释导出（mu/r/p_hat、B 编辑、逐 token NLL） | Qwen2.5-0.5B | vLLM 0.15.1 | ✅ 通过（results/interp/） |
+| vis ROC/方法对比图 | - | - | ✅ 生成（vis/generation_eval/） |
+| Qwen3.5-4B | - | vLLM / Transformers | ⏳ blocked（见已知问题 2，升级后复验） |
 
 ## 里程碑对照（DESIGN §11）
 

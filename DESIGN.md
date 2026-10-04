@@ -621,6 +621,15 @@ exphalu2/
 - 多轮工具调用轨迹：数据适配器未接 → `planned`。
 - Qwen3-4B：`/mnt/data` 坏道 shard → 本机 `blocked`；如需该模型须换盘或重新下载。
 - SQuAD / CoQA：原始 JSON 在未挂载盘 → `blocked`（适配器就绪，配置填路径即启用）。
+- Qwen3.5-4B（引擎原生 / legacy 端口）：vLLM 0.15.1 注册表与 Transformers 4.57.6 均不识别 `qwen3_5` → 升级 vLLM 0.30.0（torch 2.13.0 + transformers 5.18.0）安装中，完成后按 README 验证记录表复验。
+
+## P4. 交付记录（2026-10-04 收尾）
+
+- 实测通过项与产物路径见 README"已完成的验证记录"表；两次冒烟的小产物入库（results/smoke/），其余产物按合同留在本地（log/results/vis 均 gitignore）。
+- vLLM 双 runner 分时加载有三次实机教训，已固化为合同：切换前必须 `release_for_replay()`；引擎核心进程退出有延迟，加载失败含 "Free memory/Engine core initialization failed" 时等待重试（60s×3）；perf 类混合负载必须按阶段分批，禁止逐样本 gen↔pool 乒乓。
+- vLLM 同一 SamplingParams seed 下 n>1 会产出完全相同样本：K 个采样改为 n 次独立调用、seed 递增（保可复现且互异）。
+- 已知方法学限制：J=1 时跨单元 softmax 退化（见 README 已知问题 7）；eigenscore-last 方向观察见问题 8。
+- 评分方向合同、缺失值 null+状态码、注册表状态机（planned/implemented/blocked）已在 `reppl2/baselines/registry.py` 与 `tests/` 固定数组测试中固化。
 
 ## P3. 运行与验收协议
 
