@@ -1,0 +1,63 @@
+{
+  "_config_hash_": "b79fd66a8f9fa13a",
+  "judge_model": "qwen2_5_0_5b",
+  "backend": "vllm",
+  "prompt_version": "judge-yesno-v1",
+  "per_sample": [
+    {
+      "sample_id": "synthetic-000",
+      "judge_name": "vllm-local",
+      "hard_verdict": 0,
+      "continuous_score": 0.000626334157089251,
+      "score_type": "label_likelihood",
+      "raw_output": "Yes",
+      "coverage": "ok",
+      "reason": "",
+      "prompt_version": "judge-yesno-v1",
+      "model_revision": "",
+      "timing_s": 7.986545085906982
+    },
+    {
+      "sample_id": "synthetic-001",
+      "judge_name": "vllm-local",
+      "hard_verdict": 0,
+      "continuous_score": 0.001926734660641044,
+      "score_type": "label_likelihood",
+      "raw_output": "Yes",
+      "coverage": "ok",
+      "reason": "",
+      "prompt_version": "judge-yesno-v1",
+      "model_revision": "",
+      "timing_s": 0.018617868423461914
+    },
+    {
+      "sample_id": "synthetic-002",
+      "judge_name": "vllm-local",
+      "hard_verdict": 0,
+      "continuous_score": 0.001325022506561307,
+      "score_type": "label_likelihood",
+      "raw_output": "Yes",
+      "coverage": "ok",
+      "reason": "",
+      "prompt_version": "judge-yesno-v1",
+      "model_revision": "",
+      "timing_s": 0.01697683334350586
+    },
+    {
+      "sample_id": "synthetic-003",
+      "judge_name": "vllm-local",
+      "hard_verdict": 0,
+      "continuous_score": 0.0004878571597087693,
+      "score_type": "label_likelihood",
+      "raw_output": "Yes",
+      "coverage": "ok",
+      "reason": "",
+      "prompt_version": "judge-yesno-v1",
+      "model_revision": "",
+      "timing_s": 0.016893625259399414
+    }
+  ],
+  "timing": {
+    "total_s": 8.047179222106934
+  }
+}

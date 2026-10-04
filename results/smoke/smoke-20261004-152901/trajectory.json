@@ -1,0 +1,27 @@
+{
+  "_config_hash_": "13aaef9b72c6f3c6",
+  "model": "qwen2_5_0_5b",
+  "backend": "transformers",
+  "trajectories": [
+    {
+      "sample_id": "synthetic-000",
+      "prompt_text": "<|im_start|>system\nYou are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.<|im_end|>\n<|im_start|>user\nWhat is the capital of France?<|im_end|>\n<|im_start|>assistant\n",
+      "greedy_text": "The capital of France is Paris.",
+      "sample_texts": [
+        "The capital of France is Paris.",
+        "The capital of France is Paris.",
+        "The capital of France is Paris."
+      ]
+    },
+    {
+      "sample_id": "synthetic-001",
+      "prompt_text": "<|im_start|>system\nYou are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.<|im_end|>\n<|im_start|>user\nWhat is the capital of Australia?<|im_end|>\n<|im_start|>assistant\n",
+      "greedy_text": "The capital of Australia is Canberra.",
+      "sample_texts": [
+        "The capital city of Australia is Canberra.",
+        "The capital of Australia is Canberra.",
+        "The capital city of Australia is Canberra."
+      ]
+    }
+  ]
+}

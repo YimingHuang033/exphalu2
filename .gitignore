@@ -1,0 +1,45 @@
+# ---- runtime artifacts (never commit) ----
+log/
+results/*
+!results/smoke/
+!results/smoke/**
+vis/*
+!vis/smoke/
+!vis/smoke/**
+# keep small smoke-test artifacts as regression fixtures; everything else is ignored
+
+# ---- models / big data ----
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.gguf
+models/
+resource/
+datasets/
+*.parquet
+
+# ---- python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- editors / OS ----
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# ---- secrets ----
+.env
+.env.*
+*.key

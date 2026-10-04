@@ -1,0 +1,759 @@
+{
+  "_config_hash_": "b79fd66a8f9fa13a",
+  "model": "qwen2_5_0_5b",
+  "backend": "vllm",
+  "methods_requested": [
+    "reppl-a",
+    "reppl-b",
+    "outer-perplexity",
+    "lnpe",
+    "eigenscore-last",
+    "semantic-entropy-lexical",
+    "length"
+  ],
+  "method_registry_status": {
+    "reppl-a": {
+      "family": "reppl",
+      "direction": "higher=hallucination",
+      "status": "implemented"
+    },
+    "reppl-b": {
+      "family": "reppl",
+      "direction": "higher=hallucination",
+      "status": "implemented"
+    },
+    "outer-perplexity": {
+      "family": "probability",
+      "direction": "higher=hallucination",
+      "status": "implemented"
+    },
+    "lnpe": {
+      "family": "probability",
+      "direction": "higher=hallucination",
+      "status": "implemented"
+    },
+    "eigenscore-last": {
+      "family": "probability",
+      "direction": "higher=hallucination",
+      "status": "implemented",
+      "note": "last-layer variant; original specifies middle layer"
+    },
+    "semantic-entropy": {
+      "family": "semantic",
+      "direction": "higher=hallucination",
+      "status": "implemented"
+    },
+    "semantic-entropy-lexical": {
+      "family": "semantic",
+      "direction": "higher=hallucination",
+      "status": "implemented",
+      "note": "lexical fallback grouping, not NLI-based"
+    },
+    "length": {
+      "family": "control",
+      "direction": "covariate",
+      "status": "implemented"
+    },
+    "sese": {
+      "family": "semantic",
+      "direction": "higher=hallucination",
+      "status": "planned"
+    },
+    "had": {
+      "family": "supervised",
+      "direction": "higher=hallucination",
+      "status": "planned"
+    },
+    "d-score": {
+      "family": "internal-state",
+      "direction": "higher=hallucination",
+      "status": "planned"
+    },
+    "rauq": {
+      "family": "internal-state",
+      "direction": "higher=hallucination",
+      "status": "planned",
+      "note": "requires attention; blocked under native-only constraint"
+    },
+    "lafact": {
+      "family": "internal-state",
+      "direction": "higher=hallucination",
+      "status": "planned"
+    },
+    "laab": {
+      "family": "fusion",
+      "direction": "higher=hallucination",
+      "status": "planned"
+    },
+    "semantic-energy": {
+      "family": "semantic",
+      "direction": "higher=hallucination",
+      "status": "planned",
+      "note": "needs unnormalized logits; not recoverable from top-k logprobs"
+    }
+  },
+  "per_sample": [
+    {
+      "sample_id": "synthetic-000",
+      "methods": {
+        "outer-perplexity": {
+          "risk": 0.002858478493830522,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "lnpe": {
+          "risk": 0.00307161180795187,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "length": {
+          "risk": 7.0,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "eigenscore-last": {
+          "risk": 3.0,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "semantic-entropy-lexical": {
+          "risk": -0.0,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": "{'semantic_ids': [0, 0, 0], 'variant': 'semantic-entropy-lexical', 'n_clusters': 1}"
+        },
+        "reppl-a": {
+          "risk": 2.8584784938305218e-06,
+          "inner": 0.0,
+          "outer": 0.002858478493830522,
+          "validity": "ok",
+          "reason": ""
+        },
+        "reppl-b": {
+          "risk": 2.8584784938305218e-06,
+          "inner": 0.0,
+          "outer": 0.002858478493830522,
+          "validity": "ok",
+          "reason": "",
+          "coverage": 1.0,
+          "n_units_edited": 1
+        }
+      },
+      "interp": {
+        "reppl-a": {
+          "units": [
+            {
+              "unit_id": 1,
+              "text": "What is the capital of France?",
+              "char_start": 0,
+              "char_end": 30,
+              "source": "question_sentence",
+              "is_factual": true,
+              "token_start": 0,
+              "token_end": 7
+            }
+          ],
+          "A": [
+            [
+              1.0
+            ],
+            [
+              1.0
+            ],
+            [
+              1.0
+            ]
+          ],
+          "mu": [
+            1.0
+          ],
+          "sigma": [
+            0.0
+          ],
+          "r": [
+            0.0
+          ],
+          "p_hat": [
+            1.0
+          ],
+          "raw_max_similarity": [
+            [
+              0.7390900793084955
+            ],
+            [
+              0.7390900793084955
+            ],
+            [
+              0.7390900793084955
+            ]
+          ]
+        },
+        "output_nll": {
+          "greedy_token_nll": [
+            0.006205931771546602,
+            9.619726915843785e-05,
+            0.002836611121892929,
+            5.745722592109814e-05,
+            0.0011947167804464698,
+            0.005864674691110849,
+            0.0037537605967372656,
+            0.004477000795304775
+          ]
+        },
+        "reppl-b": {
+          "j_ids": [
+            1
+          ],
+          "q_raw": [
+            [
+              0.7553544423463213
+            ],
+            [
+              0.7553544423463213
+            ],
+            [
+              0.7553544423463213
+            ]
+          ],
+          "A": [
+            [
+              0.9999999999986762
+            ],
+            [
+              0.9999999999986762
+            ],
+            [
+              0.9999999999986762
+            ]
+          ],
+          "edits": [
+            {
+              "unit_id": 1,
+              "skipped": false,
+              "original_text": "What is the capital of France?",
+              "replacement": "[MASKED]",
+              "edit_type": "neutralize"
+            }
+          ],
+          "coverage": 1.0,
+          "mu": [
+            0.9999999999986762
+          ],
+          "r": [
+            0.0
+          ]
+        }
+      },
+      "replay_time_s": 9.590779066085815
+    },
+    {
+      "sample_id": "synthetic-001",
+      "methods": {
+        "outer-perplexity": {
+          "risk": 0.012222339559230022,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "lnpe": {
+          "risk": 0.012222339559230022,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "length": {
+          "risk": 7.0,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "eigenscore-last": {
+          "risk": 3.0,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "semantic-entropy-lexical": {
+          "risk": -0.0,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": "{'semantic_ids': [0, 0, 0], 'variant': 'semantic-entropy-lexical', 'n_clusters': 1}"
+        },
+        "reppl-a": {
+          "risk": 1.2222339559230022e-05,
+          "inner": 0.0,
+          "outer": 0.012222339559230022,
+          "validity": "ok",
+          "reason": ""
+        },
+        "reppl-b": {
+          "risk": 1.2222339559230022e-05,
+          "inner": 0.0,
+          "outer": 0.012222339559230022,
+          "validity": "ok",
+          "reason": "",
+          "coverage": 1.0,
+          "n_units_edited": 1
+        }
+      },
+      "interp": {
+        "reppl-a": {
+          "units": [
+            {
+              "unit_id": 1,
+              "text": "What is the capital of Australia?",
+              "char_start": 0,
+              "char_end": 33,
+              "source": "question_sentence",
+              "is_factual": true,
+              "token_start": 0,
+              "token_end": 7
+            }
+          ],
+          "A": [
+            [
+              1.0
+            ],
+            [
+              1.0
+            ],
+            [
+              1.0
+            ]
+          ],
+          "mu": [
+            1.0
+          ],
+          "sigma": [
+            0.0
+          ],
+          "r": [
+            0.0
+          ],
+          "p_hat": [
+            1.0
+          ],
+          "raw_max_similarity": [
+            [
+              0.7640898443334808
+            ],
+            [
+              0.7640898443334808
+            ],
+            [
+              0.7640898443334808
+            ]
+          ]
+        },
+        "output_nll": {
+          "greedy_token_nll": [
+            0.017091834917664528,
+            0.0001264730526600033,
+            0.02635931596159935,
+            0.00013696208770852536,
+            0.001763218897394836,
+            0.037929631769657135,
+            0.0021489402279257774,
+            0.00639203330501914
+          ]
+        },
+        "reppl-b": {
+          "j_ids": [
+            1
+          ],
+          "q_raw": [
+            [
+              0.7468155170658379
+            ],
+            [
+              0.7468155170658379
+            ],
+            [
+              0.7468155170658379
+            ]
+          ],
+          "A": [
+            [
+              0.999999999998661
+            ],
+            [
+              0.999999999998661
+            ],
+            [
+              0.999999999998661
+            ]
+          ],
+          "edits": [
+            {
+              "unit_id": 1,
+              "skipped": false,
+              "original_text": "What is the capital of Australia?",
+              "replacement": "[MASKED]",
+              "edit_type": "neutralize"
+            }
+          ],
+          "coverage": 1.0,
+          "mu": [
+            0.999999999998661
+          ],
+          "r": [
+            0.0
+          ]
+        }
+      },
+      "replay_time_s": 0.2746579647064209
+    },
+    {
+      "sample_id": "synthetic-002",
+      "methods": {
+        "outer-perplexity": {
+          "risk": 0.0313859167854998,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "lnpe": {
+          "risk": 0.08298674826463188,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "length": {
+          "risk": 14.0,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "eigenscore-last": {
+          "risk": 2.994412513953438,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "semantic-entropy-lexical": {
+          "risk": -0.0,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": "{'semantic_ids': [0, 0, 0], 'variant': 'semantic-entropy-lexical', 'n_clusters': 1}"
+        },
+        "reppl-a": {
+          "risk": 3.1385916785499796e-05,
+          "inner": 0.0,
+          "outer": 0.0313859167854998,
+          "validity": "ok",
+          "reason": ""
+        },
+        "reppl-b": {
+          "risk": 3.1385916785499796e-05,
+          "inner": 1.0963946674679272e-27,
+          "outer": 0.0313859167854998,
+          "validity": "ok",
+          "reason": "",
+          "coverage": 1.0,
+          "n_units_edited": 1
+        }
+      },
+      "interp": {
+        "reppl-a": {
+          "units": [
+            {
+              "unit_id": 1,
+              "text": "Who wrote the novel '1984'?",
+              "char_start": 0,
+              "char_end": 27,
+              "source": "question_sentence",
+              "is_factual": true,
+              "token_start": 0,
+              "token_end": 6
+            }
+          ],
+          "A": [
+            [
+              1.0
+            ],
+            [
+              1.0
+            ],
+            [
+              1.0
+            ]
+          ],
+          "mu": [
+            1.0
+          ],
+          "sigma": [
+            0.0
+          ],
+          "r": [
+            0.0
+          ],
+          "p_hat": [
+            1.0
+          ],
+          "raw_max_similarity": [
+            [
+              0.7071085473855769
+            ],
+            [
+              0.7071085473855769
+            ],
+            [
+              0.7071085473855769
+            ]
+          ]
+        },
+        "output_nll": {
+          "greedy_token_nll": [
+            0.12933194637298584,
+            0.05342037230730057,
+            0.11436803638935089,
+            0.0003700763627421111,
+            3.576278118089249e-07,
+            1.168244216387393e-05,
+            -0.0,
+            0.011999682523310184,
+            0.01450682058930397,
+            0.024146636947989464,
+            0.001821288955397904,
+            0.053491562604904175,
+            0.01206681877374649,
+            0.02386755309998989,
+            0.010453470051288605
+          ]
+        },
+        "reppl-b": {
+          "j_ids": [
+            1
+          ],
+          "q_raw": [
+            [
+              0.5974385014922645
+            ],
+            [
+              0.6238853315390218
+            ],
+            [
+              0.5974385014922645
+            ]
+          ],
+          "A": [
+            [
+              0.9999999999983262
+            ],
+            [
+              0.9999999999983972
+            ],
+            [
+              0.9999999999983262
+            ]
+          ],
+          "edits": [
+            {
+              "unit_id": 1,
+              "skipped": false,
+              "original_text": "Who wrote the novel '1984'?",
+              "replacement": "[MASKED]",
+              "edit_type": "neutralize"
+            }
+          ],
+          "coverage": 1.0,
+          "mu": [
+            0.9999999999983499
+          ],
+          "r": [
+            3.3111850861405e-14
+          ]
+        }
+      },
+      "replay_time_s": 0.13530635833740234
+    },
+    {
+      "sample_id": "synthetic-003",
+      "methods": {
+        "outer-perplexity": {
+          "risk": 0.05237688438016145,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "lnpe": {
+          "risk": 0.20607718137464312,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "length": {
+          "risk": 9.0,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "eigenscore-last": {
+          "risk": 2.9933350863121966,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "semantic-entropy-lexical": {
+          "risk": 0.5474190664992542,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": "{'semantic_ids': [0, 1, 0], 'variant': 'semantic-entropy-lexical', 'n_clusters': 2}"
+        },
+        "reppl-a": {
+          "risk": 5.237688438016145e-05,
+          "inner": 0.0,
+          "outer": 0.05237688438016145,
+          "validity": "ok",
+          "reason": ""
+        },
+        "reppl-b": {
+          "risk": 5.237688438016145e-05,
+          "inner": 2.0454240704986123e-28,
+          "outer": 0.05237688438016145,
+          "validity": "ok",
+          "reason": "",
+          "coverage": 1.0,
+          "n_units_edited": 1
+        }
+      },
+      "interp": {
+        "reppl-a": {
+          "units": [
+            {
+              "unit_id": 1,
+              "text": "Which planet is known as the Red Planet?",
+              "char_start": 0,
+              "char_end": 40,
+              "source": "question_sentence",
+              "is_factual": true,
+              "token_start": 0,
+              "token_end": 9
+            }
+          ],
+          "A": [
+            [
+              1.0
+            ],
+            [
+              1.0
+            ],
+            [
+              1.0
+            ]
+          ],
+          "mu": [
+            1.0
+          ],
+          "sigma": [
+            0.0
+          ],
+          "r": [
+            0.0
+          ],
+          "p_hat": [
+            1.0
+          ],
+          "raw_max_similarity": [
+            [
+              0.8431406783197759
+            ],
+            [
+              0.7984334601935404
+            ],
+            [
+              0.8431406783197759
+            ]
+          ]
+        },
+        "output_nll": {
+          "greedy_token_nll": [
+            0.04889955744147301,
+            0.3604315221309662,
+            0.010527199134230614,
+            0.00012659224739763886,
+            0.0006605588714592159,
+            0.03398747369647026,
+            0.000979896984063089,
+            0.007969249971210957,
+            0.006739267613738775,
+            0.0010706413304433227,
+            0.00868874043226242
+          ]
+        },
+        "reppl-b": {
+          "j_ids": [
+            1
+          ],
+          "q_raw": [
+            [
+              0.6772289048174962
+            ],
+            [
+              0.6915648358490174
+            ],
+            [
+              0.6772289048174962
+            ]
+          ],
+          "A": [
+            [
+              0.9999999999985234
+            ],
+            [
+              0.999999999998554
+            ],
+            [
+              0.9999999999985234
+            ]
+          ],
+          "edits": [
+            {
+              "unit_id": 1,
+              "skipped": false,
+              "original_text": "Which planet is known as the Red Planet?",
+              "replacement": "[MASKED]",
+              "edit_type": "neutralize"
+            }
+          ],
+          "coverage": 1.0,
+          "mu": [
+            0.9999999999985336
+          ],
+          "r": [
+            1.4301832296942278e-14
+          ]
+        }
+      },
+      "replay_time_s": 0.139923095703125
+    }
+  ],
+  "timing": {
+    "total_s": 10.141354084014893
+  },
+  "peak_mem_mib": 0.0
+}

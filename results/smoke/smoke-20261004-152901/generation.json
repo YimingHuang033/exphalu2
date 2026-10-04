@@ -1,0 +1,384 @@
+{
+  "_config_hash_": "13aaef9b72c6f3c6",
+  "model": "qwen2_5_0_5b",
+  "model_path": "/mnt/data/Qwen2.5-0.5B-Instruct",
+  "backend": "transformers",
+  "sampling_config": {
+    "k": 3,
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "top_k": 10,
+    "max_new_tokens": 16,
+    "seed": 42,
+    "stop_token_ids": [
+      151643,
+      151645
+    ]
+  },
+  "generations": [
+    {
+      "sample_id": "synthetic-000",
+      "prompt_text": "<|im_start|>system\nYou are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.<|im_end|>\n<|im_start|>user\nWhat is the capital of France?<|im_end|>\n<|im_start|>assistant\n",
+      "prompt_token_ids": [
+        151644,
+        8948,
+        198,
+        2610,
+        525,
+        264,
+        10950,
+        15235,
+        17847,
+        13,
+        21806,
+        279,
+        1196,
+        594,
+        3405,
+        3529,
+        285,
+        974,
+        13,
+        34006,
+        2480,
+        22870,
+        13,
+        151645,
+        198,
+        151644,
+        872,
+        198,
+        3838,
+        374,
+        279,
+        6722,
+        315,
+        9625,
+        30,
+        151645,
+        198,
+        151644,
+        77091,
+        198
+      ],
+      "greedy": {
+        "sample_id": "synthetic-000",
+        "k": 0,
+        "token_ids": [
+          785,
+          6722,
+          315,
+          9625,
+          374,
+          12095,
+          13,
+          151645
+        ],
+        "text": "The capital of France is Paris.",
+        "token_logprobs": [
+          -0.006299164611846209,
+          -0.00013386306818574667,
+          -0.0025118011981248856,
+          -5.1020273531321436e-05,
+          -0.0013578252401202917,
+          -0.005700284615159035,
+          -0.0037667055148631334,
+          -0.003943762741982937
+        ],
+        "finish_reason": "stop",
+        "valid_len": 8
+      },
+      "samples": [
+        {
+          "sample_id": "synthetic-000",
+          "k": 1,
+          "token_ids": [
+            785,
+            6722,
+            315,
+            9625,
+            374,
+            12095,
+            13,
+            151645
+          ],
+          "text": "The capital of France is Paris.",
+          "token_logprobs": [
+            -0.005579730961471796,
+            -0.00010382589971413836,
+            -0.0032279787119477987,
+            -5.4834770708112046e-05,
+            -0.0015338810626417398,
+            -0.006195743102580309,
+            -0.002926355227828026,
+            -0.004446737933903933
+          ],
+          "finish_reason": "stop",
+          "valid_len": 8
+        },
+        {
+          "sample_id": "synthetic-000",
+          "k": 2,
+          "token_ids": [
+            785,
+            6722,
+            315,
+            9625,
+            374,
+            12095,
+            13,
+            151645
+          ],
+          "text": "The capital of France is Paris.",
+          "token_logprobs": [
+            -0.005579730961471796,
+            -0.00010382589971413836,
+            -0.0032279787119477987,
+            -5.4834770708112046e-05,
+            -0.0015338810626417398,
+            -0.006195743102580309,
+            -0.002926355227828026,
+            -0.004446737933903933
+          ],
+          "finish_reason": "stop",
+          "valid_len": 8
+        },
+        {
+          "sample_id": "synthetic-000",
+          "k": 3,
+          "token_ids": [
+            785,
+            6722,
+            315,
+            9625,
+            374,
+            12095,
+            13,
+            151645
+          ],
+          "text": "The capital of France is Paris.",
+          "token_logprobs": [
+            -0.005579730961471796,
+            -0.00010382589971413836,
+            -0.0032279787119477987,
+            -5.4834770708112046e-05,
+            -0.0015338810626417398,
+            -0.006195743102580309,
+            -0.002926355227828026,
+            -0.004446737933903933
+          ],
+          "finish_reason": "stop",
+          "valid_len": 8
+        }
+      ],
+      "sampling_config": {
+        "k": 3,
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "top_k": 10,
+        "max_new_tokens": 16,
+        "seed": 42,
+        "stop_token_ids": [
+          151643,
+          151645
+        ]
+      },
+      "template_hash": "cd8e9439f057",
+      "model_revision": "",
+      "backend": "transformers"
+    },
+    {
+      "sample_id": "synthetic-001",
+      "prompt_text": "<|im_start|>system\nYou are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.<|im_end|>\n<|im_start|>user\nWhat is the capital of Australia?<|im_end|>\n<|im_start|>assistant\n",
+      "prompt_token_ids": [
+        151644,
+        8948,
+        198,
+        2610,
+        525,
+        264,
+        10950,
+        15235,
+        17847,
+        13,
+        21806,
+        279,
+        1196,
+        594,
+        3405,
+        3529,
+        285,
+        974,
+        13,
+        34006,
+        2480,
+        22870,
+        13,
+        151645,
+        198,
+        151644,
+        872,
+        198,
+        3838,
+        374,
+        279,
+        6722,
+        315,
+        8330,
+        30,
+        151645,
+        198,
+        151644,
+        77091,
+        198
+      ],
+      "greedy": {
+        "sample_id": "synthetic-001",
+        "k": 0,
+        "token_ids": [
+          785,
+          6722,
+          315,
+          8330,
+          374,
+          68790,
+          13,
+          151645
+        ],
+        "text": "The capital of Australia is Canberra.",
+        "token_logprobs": [
+          -0.02221415378153324,
+          -0.00018487652414478362,
+          -0.029848884791135788,
+          -0.00013457823661156,
+          -0.002248974982649088,
+          -0.03933391720056534,
+          -0.004035663325339556,
+          -0.013043086975812912
+        ],
+        "finish_reason": "stop",
+        "valid_len": 8
+      },
+      "samples": [
+        {
+          "sample_id": "synthetic-001",
+          "k": 1,
+          "token_ids": [
+            785,
+            6722,
+            3283,
+            315,
+            8330,
+            374,
+            68790,
+            13,
+            151645
+          ],
+          "text": "The capital city of Australia is Canberra.",
+          "token_logprobs": [
+            -0.01507156528532505,
+            -0.0001389883691444993,
+            -3.773305892944336,
+            -1.6689286894688848e-06,
+            -0.00023934361524879932,
+            -0.008681649342179298,
+            -0.03746480867266655,
+            -0.003901252755895257,
+            -0.007486146874725819
+          ],
+          "finish_reason": "stop",
+          "valid_len": 9
+        },
+        {
+          "sample_id": "synthetic-001",
+          "k": 2,
+          "token_ids": [
+            785,
+            6722,
+            315,
+            8330,
+            374,
+            68790,
+            13,
+            151645
+          ],
+          "text": "The capital of Australia is Canberra.",
+          "token_logprobs": [
+            -0.01507156528532505,
+            -0.0001389883691444993,
+            -0.023305775597691536,
+            -0.00011574551899684593,
+            -0.001989767886698246,
+            -0.03892616182565689,
+            -0.002178916009142995,
+            -0.0052758511155843735
+          ],
+          "finish_reason": "stop",
+          "valid_len": 8
+        },
+        {
+          "sample_id": "synthetic-001",
+          "k": 3,
+          "token_ids": [
+            785,
+            6722,
+            3283,
+            315,
+            8330,
+            374,
+            68790,
+            13,
+            151645
+          ],
+          "text": "The capital city of Australia is Canberra.",
+          "token_logprobs": [
+            -0.01507156528532505,
+            -0.0001389883691444993,
+            -3.773305892944336,
+            -1.6689286894688848e-06,
+            -0.00023934361524879932,
+            -0.008681649342179298,
+            -0.03746480867266655,
+            -0.003901252755895257,
+            -0.007486146874725819
+          ],
+          "finish_reason": "stop",
+          "valid_len": 9
+        }
+      ],
+      "sampling_config": {
+        "k": 3,
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "top_k": 10,
+        "max_new_tokens": 16,
+        "seed": 42,
+        "stop_token_ids": [
+          151643,
+          151645
+        ]
+      },
+      "template_hash": "cd8e9439f057",
+      "model_revision": "",
+      "backend": "transformers"
+    }
+  ],
+  "per_sample_meta": [
+    {
+      "sample_id": "synthetic-000",
+      "validity": "ok",
+      "reason": "",
+      "gen_time_s": 2.212973117828369
+    },
+    {
+      "sample_id": "synthetic-001",
+      "validity": "ok",
+      "reason": "",
+      "gen_time_s": 0.18175315856933594
+    }
+  ],
+  "timing": {
+    "total_s": 2.4005651473999023
+  },
+  "peak_mem_mib": 1002.00634765625
+}

@@ -1,0 +1,135 @@
+{
+  "model": "qwen3_5_4b",
+  "backend": "vllm",
+  "backend_cfg": {
+    "gpu_memory_utilization": 0.85,
+    "max_model_len": 4096,
+    "enforce_eager": true,
+    "dtype": "bfloat16",
+    "seed": 42
+  },
+  "models": {
+    "qwen3_5_4b": {
+      "path": "/home/tim/Proj/resource/Qwen3.5-4B",
+      "note": "primary validation model; /mnt/data copy is on a disk with bad sectors"
+    },
+    "qwen2_5_0_5b": {
+      "path": "/mnt/data/Qwen2.5-0.5B-Instruct"
+    },
+    "qwen2_5_1_5b": {
+      "path": "/mnt/data/Qwen2.5-1.5B-Instruct"
+    },
+    "qwen3_4b": {
+      "path": "/mnt/data/Qwen3-4B",
+      "note": "BLOCKED on this machine - shard 1 has unreadable sectors (I/O error / SIGBUS)"
+    },
+    "deberta-mnli": {
+      "path": "/mnt/data/deberta-v2-xlarge-mnli",
+      "note": "NLI entailment for original semantic entropy; readability self-checked at load"
+    }
+  },
+  "datasets": {
+    "triviaqa": {
+      "status": "implemented",
+      "path": "/mnt/data/trivia_qa/rc.nocontext/validation-00000-of-00001.parquet",
+      "system_prompt": "You are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences."
+    },
+    "synthetic": {
+      "status": "implemented"
+    },
+    "squad": {
+      "status": "blocked:raw-json-not-mounted",
+      "raw_json": ""
+    },
+    "coqa": {
+      "status": "blocked:raw-json-not-mounted",
+      "raw_json": ""
+    },
+    "nq": {
+      "status": "blocked:no-local-file"
+    }
+  },
+  "num_samples": 4,
+  "dataset": "synthetic",
+  "sampling": {
+    "k": 3,
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "top_k": 10,
+    "max_new_tokens": 16,
+    "seed": 42
+  },
+  "aggregator": {
+    "tau": 0.01,
+    "alpha": 2.0,
+    "epsilon": 0.001,
+    "version": "agg-v1-ddof0"
+  },
+  "association_temperature": 1.0,
+  "methods": [
+    "reppl-a",
+    "reppl-b",
+    "outer-perplexity",
+    "lnpe",
+    "eigenscore-last",
+    "semantic-entropy-lexical",
+    "length"
+  ],
+  "reppl_b": {
+    "max_units": 4
+  },
+  "judge": {
+    "prompt_version": "judge-yesno-v1"
+  },
+  "judge_providers": {
+    "local_self": {
+      "adapter": "local",
+      "status": "implemented"
+    },
+    "api_llm": {
+      "adapter": "llm_api",
+      "protocol": "openai_chat_compatible",
+      "base_url_env": "API_LLM_BASE_URL",
+      "api_key_env": "API_LLM_KEY",
+      "model_env": "API_LLM_MODEL",
+      "status": "blocked:no-key"
+    },
+    "jev_api": {
+      "adapter": "systemone",
+      "base_url_env": "JEV_BASE_URL",
+      "api_key_env": "JEV_API_KEY",
+      "model_env": "JEV_MODEL",
+      "status": "blocked:no-key"
+    },
+    "startlux_local": {
+      "adapter": "systemone",
+      "base_url": "http://127.0.0.1:8090",
+      "model": "startlux-models/StartLux-Decision-4B",
+      "status": "blocked:service-not-deployed"
+    },
+    "open20b_local": {
+      "adapter": "llm_api",
+      "protocol": "openai_chat_compatible",
+      "base_url": "http://127.0.0.1:8000/v1",
+      "model_env": "LOCAL_20B_MODEL",
+      "status": "blocked:service-not-deployed"
+    }
+  },
+  "interp": {
+    "save_intermediates": true
+  },
+  "_config_path_": "config/smoke.yaml",
+  "_config_hash_": "b79fd66a8f9fa13a",
+  "_env_fingerprint_": {
+    "python": "3.11.14",
+    "vllm": "0.15.1",
+    "transformers": "4.57.6",
+    "numpy": "2.2.6",
+    "torch": "2.9.1+cu128",
+    "cuda_available": true,
+    "gpus": [
+      "NVIDIA GeForce RTX 4090",
+      "NVIDIA GeForce RTX 4090"
+    ]
+  }
+}

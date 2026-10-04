@@ -1,0 +1,26 @@
+# Smoke config variant for the legacy Transformers port (kept per user requirement:
+# vLLM/SGLang are primary, the old HF-Transformers forward remains as a compat port).
+# Use this when the model architecture has no native engine support yet (e.g. new archs).
+model: qwen3_5_4b
+backend: transformers
+dataset: synthetic
+num_samples: 2
+
+backend_cfg:
+  dtype: bfloat16
+  attn_implementation: eager
+  device: cuda:0
+
+sampling:
+  k: 3
+  temperature: 1.0
+  top_p: 0.95
+  top_k: 10
+  max_new_tokens: 16
+  seed: 42
+
+methods:
+  - reppl-a
+  - outer-perplexity
+  - lnpe
+  - length

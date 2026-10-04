@@ -1,0 +1,22 @@
+# Interpretability exports (interp category): input mu/r/p_hat, B edit impacts,
+# per-token NLL. Same pipeline as generation_eval with interp artifacts emphasized.
+model: qwen3_5_4b
+dataset: triviaqa
+num_samples: 8
+backend: vllm
+
+sampling:
+  k: 5
+  temperature: 1.0
+  top_p: 0.95
+  top_k: 10
+  max_new_tokens: 24
+  seed: 42
+
+methods:
+  - reppl-a
+  - reppl-b
+  - outer-perplexity
+
+interp:
+  save_intermediates: true

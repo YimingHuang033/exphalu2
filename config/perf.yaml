@@ -1,0 +1,13 @@
+# Perf benchmark config (perf category). Times sampling/scoring/replay separately.
+model: qwen3_5_4b
+dataset: synthetic
+num_samples: 4
+backend: vllm
+
+sampling:
+  k: 5
+  temperature: 1.0
+  top_p: 0.95
+  top_k: 10
+  max_new_tokens: 32
+  seed: 42

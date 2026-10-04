@@ -1,0 +1,47 @@
+{
+  "_config_hash_": "b79fd66a8f9fa13a",
+  "model": "qwen2_5_0_5b",
+  "backend": "vllm",
+  "trajectories": [
+    {
+      "sample_id": "synthetic-000",
+      "prompt_text": "<|im_start|>system\nYou are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.<|im_end|>\n<|im_start|>user\nWhat is the capital of France?<|im_end|>\n<|im_start|>assistant\n",
+      "greedy_text": "The capital of France is Paris.",
+      "sample_texts": [
+        "The capital of France is Paris.",
+        "The capital of France is Paris.",
+        "The capital of France is Paris."
+      ]
+    },
+    {
+      "sample_id": "synthetic-001",
+      "prompt_text": "<|im_start|>system\nYou are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.<|im_end|>\n<|im_start|>user\nWhat is the capital of Australia?<|im_end|>\n<|im_start|>assistant\n",
+      "greedy_text": "The capital of Australia is Canberra.",
+      "sample_texts": [
+        "The capital of Australia is Canberra.",
+        "The capital of Australia is Canberra.",
+        "The capital of Australia is Canberra."
+      ]
+    },
+    {
+      "sample_id": "synthetic-002",
+      "prompt_text": "<|im_start|>system\nYou are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.<|im_end|>\n<|im_start|>user\nWho wrote the novel '1984'?<|im_end|>\n<|im_start|>assistant\n",
+      "greedy_text": "The novel \"1984\" was written by George Orwell.",
+      "sample_texts": [
+        "The novel \"1984\" was written by George Orwell.",
+        "The novel '1984' was written by George Orwell.",
+        "The novel \"1984\" was written by George Orwell."
+      ]
+    },
+    {
+      "sample_id": "synthetic-003",
+      "prompt_text": "<|im_start|>system\nYou are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.<|im_end|>\n<|im_start|>user\nWhich planet is known as the Red Planet?<|im_end|>\n<|im_start|>assistant\n",
+      "greedy_text": "The planet known as the Red Planet is Mars.",
+      "sample_texts": [
+        "The planet known as the Red Planet is Mars.",
+        "The Red Planet refers to Mars.",
+        "The planet known as the Red Planet is Mars."
+      ]
+    }
+  ]
+}

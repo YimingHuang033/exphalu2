@@ -1,0 +1,25 @@
+# Smoke test: tiny, fast, end-to-end. Artifacts land in results/smoke/<run_id>/.
+model: qwen3_5_4b
+dataset: synthetic
+num_samples: 4
+backend: vllm
+
+sampling:
+  k: 3
+  temperature: 1.0
+  top_p: 0.95
+  top_k: 10
+  max_new_tokens: 16
+  seed: 42
+
+methods:
+  - reppl-a
+  - reppl-b
+  - outer-perplexity
+  - lnpe
+  - eigenscore-last
+  - semantic-entropy-lexical
+  - length
+
+judge:
+  prompt_version: judge-yesno-v1
