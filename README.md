@@ -107,6 +107,10 @@ bash scripts/vis/plot_eval.sh <category> <run_id>
 | mmlu_college_computer_science 16 样本全链（judge 8 正例） | Qwen2.5-1.5B | vLLM 0.30.0 | ✅ 通过（geneval-20261006-134747） |
 | mmlu_college_chemistry 16 样本全链（judge 9 正例） | Qwen2.5-1.5B | vLLM 0.30.0 | ✅ 通过（geneval-20261006-135731） |
 | gpqa_diamond 16 样本全链（judge 16 正例，见已知问题 11） | Qwen3-1.7B | vLLM 0.30.0 | ✅ 通过（geneval-20261006-133935） |
+| **大规模困难层评测（双卡并行队列，run_batch_parallel.sh，2026-10-06）** | | | |
+| mmlu_pro 500 样本（judge 80.6% 正例；length AUROC=0.679） | Qwen2.5-1.5B | vLLM 0.30.0 | ✅ 通过（geneval-20261006-155839-g0） |
+| hle_text 500 样本（judge 98.4% 正例；2 条超长问题超 4096 窗口如实 failed；semantic-energy AUROC=0.649/AUPRC=0.989） | Qwen3-1.7B | vLLM 0.30.0 | ✅ 通过（geneval-20261006-155836-g1） |
+| competition_math_level5 200 样本（judge 89.5% 正例；lnpe AUROC=0.785） | Qwen2.5-1.5B | vLLM 0.30.0 | ✅ 通过（geneval-20261006-172440-g0） |
 | mmlu_college_mathematics 16 样本全链（judge 14 正例） | Qwen3-1.7B | vLLM 0.30.0 | ✅ 通过（geneval-20261006-134438） |
 | triviaqa 16 样本回归（参考感知 judge v2） | Qwen3-1.7B | vLLM 0.30.0 | ✅ 通过（geneval-20261006-135441） |
 | 冒烟全链回归（gpt-oss-20b judge provider 接入） | Qwen3.5-4B | vLLM 0.30.0 | ✅ 通过（smoke-20261006-140032） |
