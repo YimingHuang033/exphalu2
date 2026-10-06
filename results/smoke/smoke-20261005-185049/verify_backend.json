@@ -1,0 +1,21 @@
+{
+  "backend": "vllm",
+  "model": "/home/tim/Proj/resource/Qwen3.5-4B",
+  "capabilities": {
+    "backend": "vllm",
+    "vllm_version": "0.30.0",
+    "generation": true,
+    "token_logprobs": true,
+    "token_last_hidden": true,
+    "note": "generate runner and pooling runner are loaded in separate phases; not simultaneously resident"
+  },
+  "checks": [
+    {
+      "check": "end_to_end",
+      "ok": false,
+      "detail": "BackendError('generate runner failed after retries: Engine core initialization failed. See root cause above. Failed core proc(s): {}')",
+      "gating": true
+    }
+  ],
+  "status": "failed"
+}

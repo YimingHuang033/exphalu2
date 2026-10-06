@@ -1,0 +1,70 @@
+{
+  "backend": "vllm",
+  "model": "/home/tim/Proj/resource/Qwen3.5-4B",
+  "capabilities": {
+    "backend": "vllm",
+    "vllm_version": "0.30.0",
+    "generation": true,
+    "token_logprobs": true,
+    "token_last_hidden": true,
+    "note": "generate runner and pooling runner are loaded in separate phases; not simultaneously resident"
+  },
+  "checks": [
+    {
+      "check": "generation_nonempty",
+      "ok": true,
+      "detail": "",
+      "gating": true
+    },
+    {
+      "check": "greedy_logprobs_finite",
+      "ok": true,
+      "detail": "",
+      "gating": true
+    },
+    {
+      "check": "greedy_logprobs_nonpositive",
+      "ok": true,
+      "detail": "",
+      "gating": true
+    },
+    {
+      "check": "sampled_outputs_distinct",
+      "ok": false,
+      "detail": "1/3 distinct (peaked outputs are valid low variance, recorded not failed)",
+      "gating": false
+    },
+    {
+      "check": "score_length_matches",
+      "ok": true,
+      "detail": "2 vs 2",
+      "gating": true
+    },
+    {
+      "check": "score_alignment_tolerance",
+      "ok": true,
+      "detail": "max|diff|=0.0000 (sampling vs replay numeric drift)",
+      "gating": true
+    },
+    {
+      "check": "hidden_shape",
+      "ok": true,
+      "detail": "(2, 2560)",
+      "gating": true
+    },
+    {
+      "check": "hidden_finite",
+      "ok": true,
+      "detail": "",
+      "gating": true
+    },
+    {
+      "check": "hidden_dtype_float32",
+      "ok": true,
+      "detail": "float32",
+      "gating": true
+    }
+  ],
+  "sample_output_text": "Paris",
+  "status": "passed"
+}

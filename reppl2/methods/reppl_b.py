@@ -13,6 +13,8 @@ def reppl_b_inner(z: np.ndarray, z_edit: dict[int, np.ndarray],
     z: (K, H) pooled output states under original input, one row per sampled answer k.
     z_edit: unit_id -> (K, H) pooled output states under edited input x^-j (same fixed output ids).
     Returns (A_normalized, raw_q) with strict pairing checks; raises on invalid shapes.
+    Also aggregates the RAW q matrix through the same aggregator (DESIGN §5.1 requires
+    the raw-q CV ablation to identify normalization coupling; exposed as reppl-b-rawq).
     """
     K, H = z.shape
     if K < 2:
@@ -34,8 +36,13 @@ def reppl_b_inner(z: np.ndarray, z_edit: dict[int, np.ndarray],
     denom = q.sum(axis=1, keepdims=True) + 1e-12
     A_norm = q / denom
     agg = aggregate_A(A_norm, outer_nll_sum=None, mean_sample_len=None, cfg=agg_cfg)
-    if outer is not None and agg.validity.status == "ok":
-        agg.risk = float((agg.inner + agg_cfg.epsilon) * outer)
-        agg.outer = float(outer)
-    return {"A": A_norm, "agg": agg, "j_ids": j_ids}, {"q_raw": q, "z": z,
-            "z_edit": {j: z_edit[j] for j in j_ids}}
+    agg_raw = aggregate_A(q, outer_nll_sum=None, mean_sample_len=None, cfg=agg_cfg)
+    if outer is not None:
+        if agg.validity.status == "ok":
+            agg.risk = float((agg.inner + agg_cfg.epsilon) * outer)
+            agg.outer = float(outer)
+        if agg_raw.validity.status == "ok":
+            agg_raw.risk = float((agg_raw.inner + agg_cfg.epsilon) * outer)
+            agg_raw.outer = float(outer)
+    return {"A": A_norm, "agg": agg, "agg_raw": agg_raw, "j_ids": j_ids}, \
+        {"q_raw": q, "z": z, "z_edit": {j: z_edit[j] for j in j_ids}}

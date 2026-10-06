@@ -1,0 +1,168 @@
+{
+  "_config_hash_": "3b6b29beabb7c0b4",
+  "model": "qwen3_5_4b",
+  "backend": "transformers",
+  "methods_requested": [
+    "reppl-a",
+    "outer-perplexity",
+    "lnpe",
+    "length"
+  ],
+  "method_registry_status": {
+    "reppl-a": {
+      "family": "reppl",
+      "direction": "higher=hallucination",
+      "status": "implemented"
+    },
+    "reppl-b": {
+      "family": "reppl",
+      "direction": "higher=hallucination",
+      "status": "implemented"
+    },
+    "outer-perplexity": {
+      "family": "probability",
+      "direction": "higher=hallucination",
+      "status": "implemented"
+    },
+    "lnpe": {
+      "family": "probability",
+      "direction": "higher=hallucination",
+      "status": "implemented"
+    },
+    "eigenscore-last": {
+      "family": "probability",
+      "direction": "higher=hallucination",
+      "status": "implemented",
+      "note": "last-layer variant; original specifies middle layer"
+    },
+    "semantic-entropy": {
+      "family": "semantic",
+      "direction": "higher=hallucination",
+      "status": "implemented"
+    },
+    "semantic-entropy-lexical": {
+      "family": "semantic",
+      "direction": "higher=hallucination",
+      "status": "implemented",
+      "note": "lexical fallback grouping, not NLI-based"
+    },
+    "length": {
+      "family": "control",
+      "direction": "covariate",
+      "status": "implemented"
+    },
+    "sese": {
+      "family": "semantic",
+      "direction": "higher=hallucination",
+      "status": "planned"
+    },
+    "had": {
+      "family": "supervised",
+      "direction": "higher=hallucination",
+      "status": "planned"
+    },
+    "d-score": {
+      "family": "internal-state",
+      "direction": "higher=hallucination",
+      "status": "planned"
+    },
+    "rauq": {
+      "family": "internal-state",
+      "direction": "higher=hallucination",
+      "status": "planned",
+      "note": "requires attention; blocked under native-only constraint"
+    },
+    "lafact": {
+      "family": "internal-state",
+      "direction": "higher=hallucination",
+      "status": "planned"
+    },
+    "laab": {
+      "family": "fusion",
+      "direction": "higher=hallucination",
+      "status": "planned"
+    },
+    "semantic-energy": {
+      "family": "semantic",
+      "direction": "higher=hallucination",
+      "status": "planned",
+      "note": "needs unnormalized logits; not recoverable from top-k logprobs"
+    }
+  },
+  "per_sample": [
+    {
+      "sample_id": "synthetic-000",
+      "methods": {
+        "outer-perplexity": {
+          "risk": 0.0016737275291234255,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "lnpe": {
+          "risk": 0.001515312702395022,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "length": {
+          "risk": 1.0,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "reppl-a": {
+          "risk": null,
+          "inner": null,
+          "outer": null,
+          "validity": "invalid",
+          "reason": "no input unit could be aligned to token spans"
+        }
+      },
+      "interp": null,
+      "replay_time_s": 12.08947491645813
+    },
+    {
+      "sample_id": "synthetic-001",
+      "methods": {
+        "outer-perplexity": {
+          "risk": 0.15836576608126052,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "lnpe": {
+          "risk": 0.7788810689574651,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "length": {
+          "risk": 2.0,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "reppl-a": {
+          "risk": null,
+          "inner": null,
+          "outer": null,
+          "validity": "invalid",
+          "reason": "no input unit could be aligned to token spans"
+        }
+      },
+      "interp": null,
+      "replay_time_s": 0.11837387084960938
+    }
+  ],
+  "timing": {
+    "total_s": 12.208086252212524
+  },
+  "peak_mem_mib": 8207.24853515625
+}

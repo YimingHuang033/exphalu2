@@ -19,6 +19,8 @@ models/
 resource/
 datasets/
 *.parquet
+# third-party reference repos cloned for verification only
+.refs/
 
 # ---- python ----
 __pycache__/

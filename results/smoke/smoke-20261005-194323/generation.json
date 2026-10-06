@@ -1,0 +1,300 @@
+{
+  "_config_hash_": "3b6b29beabb7c0b4",
+  "model": "qwen3_5_4b",
+  "model_path": "/home/tim/Proj/resource/Qwen3.5-4B",
+  "backend": "transformers",
+  "sampling_config": {
+    "k": 3,
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "top_k": 10,
+    "max_new_tokens": 16,
+    "seed": 42,
+    "stop_token_ids": [
+      248044,
+      248046
+    ]
+  },
+  "generations": [
+    {
+      "sample_id": "synthetic-000",
+      "prompt_text": "<|im_start|>system\nYou are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.<|im_end|>\n<|im_start|>user\nWhat is the capital of France?<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+      "prompt_token_ids": [
+        248045,
+        8678,
+        198,
+        2523,
+        513,
+        264,
+        10631,
+        14791,
+        17313,
+        13,
+        21134,
+        279,
+        1156,
+        579,
+        3296,
+        3413,
+        284,
+        943,
+        13,
+        32879,
+        2400,
+        22157,
+        13,
+        248046,
+        198,
+        248045,
+        846,
+        198,
+        3710,
+        369,
+        279,
+        6511,
+        314,
+        9338,
+        30,
+        248046,
+        198,
+        248045,
+        74455,
+        198,
+        248068,
+        271,
+        248069,
+        271
+      ],
+      "greedy": {
+        "sample_id": "synthetic-000",
+        "k": 0,
+        "token_ids": [
+          57590,
+          248046
+        ],
+        "text": "Paris",
+        "token_logprobs": [
+          -0.0016737275291234255,
+          -0.04051612317562103
+        ],
+        "finish_reason": "stop",
+        "valid_len": 2
+      },
+      "samples": [
+        {
+          "sample_id": "synthetic-000",
+          "k": 1,
+          "token_ids": [
+            57590,
+            248046
+          ],
+          "text": "Paris",
+          "token_logprobs": [
+            -0.001515312702395022,
+            -0.03591081500053406
+          ],
+          "finish_reason": "stop",
+          "valid_len": 2
+        },
+        {
+          "sample_id": "synthetic-000",
+          "k": 2,
+          "token_ids": [
+            57590,
+            248046
+          ],
+          "text": "Paris",
+          "token_logprobs": [
+            -0.001515312702395022,
+            -0.03591081500053406
+          ],
+          "finish_reason": "stop",
+          "valid_len": 2
+        },
+        {
+          "sample_id": "synthetic-000",
+          "k": 3,
+          "token_ids": [
+            57590,
+            248046
+          ],
+          "text": "Paris",
+          "token_logprobs": [
+            -0.001515312702395022,
+            -0.03591081500053406
+          ],
+          "finish_reason": "stop",
+          "valid_len": 2
+        }
+      ],
+      "sampling_config": {
+        "k": 3,
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "top_k": 10,
+        "max_new_tokens": 16,
+        "seed": 42,
+        "stop_token_ids": [
+          248044,
+          248046
+        ]
+      },
+      "template_hash": "a4aee8afcf2e",
+      "model_revision": "",
+      "backend": "transformers"
+    },
+    {
+      "sample_id": "synthetic-001",
+      "prompt_text": "<|im_start|>system\nYou are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.<|im_end|>\n<|im_start|>user\nWhat is the capital of Australia?<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+      "prompt_token_ids": [
+        248045,
+        8678,
+        198,
+        2523,
+        513,
+        264,
+        10631,
+        14791,
+        17313,
+        13,
+        21134,
+        279,
+        1156,
+        579,
+        3296,
+        3413,
+        284,
+        943,
+        13,
+        32879,
+        2400,
+        22157,
+        13,
+        248046,
+        198,
+        248045,
+        846,
+        198,
+        3710,
+        369,
+        279,
+        6511,
+        314,
+        8071,
+        30,
+        248046,
+        198,
+        248045,
+        74455,
+        198,
+        248068,
+        271,
+        248069,
+        271
+      ],
+      "greedy": {
+        "sample_id": "synthetic-001",
+        "k": 0,
+        "token_ids": [
+          6503,
+          60241,
+          248046
+        ],
+        "text": "Canberra",
+        "token_logprobs": [
+          -0.3165888488292694,
+          -0.0001426833332516253,
+          -0.05068635940551758
+        ],
+        "finish_reason": "stop",
+        "valid_len": 3
+      },
+      "samples": [
+        {
+          "sample_id": "synthetic-001",
+          "k": 1,
+          "token_ids": [
+            2665,
+            6511,
+            248046
+          ],
+          "text": "No capital",
+          "token_logprobs": [
+            -2.575796604156494,
+            -1.4455852508544922,
+            -1.0964653491973877
+          ],
+          "finish_reason": "stop",
+          "valid_len": 3
+        },
+        {
+          "sample_id": "synthetic-001",
+          "k": 2,
+          "token_ids": [
+            6503,
+            60241,
+            248046
+          ],
+          "text": "Canberra",
+          "token_logprobs": [
+            -0.32579660415649414,
+            -0.00015567521040793508,
+            -0.05213826149702072
+          ],
+          "finish_reason": "stop",
+          "valid_len": 3
+        },
+        {
+          "sample_id": "synthetic-001",
+          "k": 3,
+          "token_ids": [
+            6503,
+            60241,
+            248046
+          ],
+          "text": "Canberra",
+          "token_logprobs": [
+            -0.32579660415649414,
+            -0.00015567521040793508,
+            -0.05213826149702072
+          ],
+          "finish_reason": "stop",
+          "valid_len": 3
+        }
+      ],
+      "sampling_config": {
+        "k": 3,
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "top_k": 10,
+        "max_new_tokens": 16,
+        "seed": 42,
+        "stop_token_ids": [
+          248044,
+          248046
+        ]
+      },
+      "template_hash": "a4aee8afcf2e",
+      "model_revision": "",
+      "backend": "transformers"
+    }
+  ],
+  "per_sample_meta": [
+    {
+      "sample_id": "synthetic-000",
+      "validity": "ok",
+      "reason": "",
+      "gen_time_s": 12.584032535552979
+    },
+    {
+      "sample_id": "synthetic-001",
+      "validity": "ok",
+      "reason": "",
+      "gen_time_s": 0.33671092987060547
+    }
+  ],
+  "timing": {
+    "total_s": 12.933306217193604
+  },
+  "peak_mem_mib": 8345.3828125
+}

@@ -1,0 +1,295 @@
+{
+  "_config_hash_": "c77d46227cdd732f",
+  "model": "qwen3_5_4b",
+  "backend": "transformers",
+  "methods_requested": [
+    "reppl-a",
+    "outer-perplexity",
+    "lnpe",
+    "length"
+  ],
+  "method_registry_status": {
+    "reppl-a": {
+      "family": "reppl",
+      "direction": "higher=hallucination",
+      "status": "implemented"
+    },
+    "reppl-b": {
+      "family": "reppl",
+      "direction": "higher=hallucination",
+      "status": "implemented"
+    },
+    "outer-perplexity": {
+      "family": "probability",
+      "direction": "higher=hallucination",
+      "status": "implemented"
+    },
+    "lnpe": {
+      "family": "probability",
+      "direction": "higher=hallucination",
+      "status": "implemented"
+    },
+    "eigenscore-last": {
+      "family": "probability",
+      "direction": "higher=hallucination",
+      "status": "implemented",
+      "note": "last-layer variant; original specifies middle layer"
+    },
+    "semantic-entropy": {
+      "family": "semantic",
+      "direction": "higher=hallucination",
+      "status": "implemented"
+    },
+    "semantic-entropy-lexical": {
+      "family": "semantic",
+      "direction": "higher=hallucination",
+      "status": "implemented",
+      "note": "lexical fallback grouping, not NLI-based"
+    },
+    "length": {
+      "family": "control",
+      "direction": "covariate",
+      "status": "implemented"
+    },
+    "d-score-last": {
+      "family": "internal-state",
+      "direction": "higher=hallucination",
+      "status": "implemented",
+      "runner": "<function dscore_last_risk at 0x774a17e9b100>",
+      "note": "adapted variant; original D-Score selects the best layer, engine-native path exposes last-layer states only"
+    },
+    "d-score": {
+      "family": "internal-state",
+      "direction": "higher=hallucination",
+      "status": "planned",
+      "note": "original best-layer configuration; needs middle-layer state access"
+    },
+    "sese": {
+      "family": "semantic",
+      "direction": "higher=hallucination",
+      "status": "implemented",
+      "runner": "<function sese_risk at 0x774a17ec8860>",
+      "note": "official port (SELGroup/SeSE @8d4c6c5); GPT-4o answer enhancement skipped (no key) and recorded, not substituted"
+    },
+    "had": {
+      "family": "supervised",
+      "direction": "higher=hallucination",
+      "status": "planned"
+    },
+    "rauq": {
+      "family": "internal-state",
+      "direction": "higher=hallucination",
+      "status": "planned",
+      "note": "requires attention; blocked under native-only constraint"
+    },
+    "lafact": {
+      "family": "internal-state",
+      "direction": "higher=hallucination",
+      "status": "planned"
+    },
+    "laab": {
+      "family": "fusion",
+      "direction": "higher=hallucination",
+      "status": "planned"
+    },
+    "semantic-energy": {
+      "family": "semantic",
+      "direction": "higher=hallucination",
+      "status": "planned",
+      "note": "needs unnormalized logits; not recoverable from top-k logprobs"
+    }
+  },
+  "per_sample": [
+    {
+      "sample_id": "synthetic-000",
+      "methods": {
+        "outer-perplexity": {
+          "risk": 0.0016737275291234255,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "lnpe": {
+          "risk": 0.001515312702395022,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "length": {
+          "risk": 1.0,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "reppl-a": {
+          "risk": 1.6737275291234256e-06,
+          "inner": 0.0,
+          "outer": 0.0016737275291234255,
+          "validity": "ok",
+          "reason": ""
+        }
+      },
+      "interp": {
+        "reppl-a": {
+          "units": [
+            {
+              "unit_id": 1,
+              "text": "What is the capital of France?",
+              "char_start": 0,
+              "char_end": 30,
+              "source": "question_sentence",
+              "is_factual": true,
+              "char_start_in_prompt": 138,
+              "char_end_in_prompt": 168,
+              "span_source": "text_search",
+              "token_start": 28,
+              "token_end": 35
+            }
+          ],
+          "A": [
+            [
+              1.0
+            ],
+            [
+              1.0
+            ],
+            [
+              1.0
+            ]
+          ],
+          "mu": [
+            1.0
+          ],
+          "sigma": [
+            0.0
+          ],
+          "r": [
+            0.0
+          ],
+          "p_hat": [
+            1.0
+          ],
+          "raw_max_similarity": [
+            [
+              0.6257275763442635
+            ],
+            [
+              0.6257275763442635
+            ],
+            [
+              0.6257275763442635
+            ]
+          ]
+        },
+        "output_nll": {
+          "greedy_token_nll": [
+            0.0016737275291234255,
+            0.04051612317562103
+          ]
+        }
+      },
+      "replay_time_s": 11.6492178440094
+    },
+    {
+      "sample_id": "synthetic-001",
+      "methods": {
+        "outer-perplexity": {
+          "risk": 0.15836576608126052,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "lnpe": {
+          "risk": 0.7788810689574651,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "length": {
+          "risk": 2.0,
+          "inner": null,
+          "outer": null,
+          "validity": "ok",
+          "reason": ""
+        },
+        "reppl-a": {
+          "risk": 0.00015836576608126051,
+          "inner": 0.0,
+          "outer": 0.15836576608126052,
+          "validity": "ok",
+          "reason": ""
+        }
+      },
+      "interp": {
+        "reppl-a": {
+          "units": [
+            {
+              "unit_id": 1,
+              "text": "What is the capital of Australia?",
+              "char_start": 0,
+              "char_end": 33,
+              "source": "question_sentence",
+              "is_factual": true,
+              "char_start_in_prompt": 138,
+              "char_end_in_prompt": 171,
+              "span_source": "text_search",
+              "token_start": 28,
+              "token_end": 35
+            }
+          ],
+          "A": [
+            [
+              1.0
+            ],
+            [
+              1.0
+            ],
+            [
+              1.0
+            ]
+          ],
+          "mu": [
+            1.0
+          ],
+          "sigma": [
+            0.0
+          ],
+          "r": [
+            0.0
+          ],
+          "p_hat": [
+            1.0
+          ],
+          "raw_max_similarity": [
+            [
+              0.4865003376175453
+            ],
+            [
+              0.592026519208511
+            ],
+            [
+              0.592026519208511
+            ]
+          ]
+        },
+        "output_nll": {
+          "greedy_token_nll": [
+            0.3165888488292694,
+            0.0001426833332516253,
+            0.05068635940551758
+          ]
+        }
+      },
+      "replay_time_s": 0.11749410629272461
+    }
+  ],
+  "timing": {
+    "total_s": 11.766949653625488
+  },
+  "peak_mem_mib": 8207.24853515625
+}

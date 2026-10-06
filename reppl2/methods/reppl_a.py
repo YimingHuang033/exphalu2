@@ -15,10 +15,11 @@ def reppl_a_inner(gen: Generation, replay_states: dict[str, np.ndarray],
                   require_valid_units: bool = True) -> tuple[SharedAggregate, dict]:
     """Method A per DESIGN.md §4.
 
-    replay_states: key 'context' -> (L_ctx, H) last-hidden states from replay of [ctx, greedy_out];
-                   key 'samples' -> list over k of (L_out_k, H) states for [ctx, sampled_out_k].
-    Context-side unit representation u[j] is mean-pooled from the GREEDY replay; per-sample output
-    token states v[k,t] come from each sample's own replay.
+    replay_states: key 'context' -> (L_ctx, H) PROMPT-side last-hidden states from replay of
+                   [ctx, greedy_out] (len == len(prompt_token_ids)); key 'samples' -> list over
+                   k of (L_out_k, H) output-token states for [ctx, sampled_out_k].
+    Context-side unit representation u[j] is mean-pooled from the GREEDY replay's prompt states;
+    per-sample output token states v[k,t] come from each sample's own replay.
     """
     ctx_states = replay_states["context"]
     L_ctx = ctx_states.shape[0]

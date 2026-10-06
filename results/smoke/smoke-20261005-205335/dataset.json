@@ -1,0 +1,41 @@
+{
+  "dataset": "synthetic",
+  "examples": [
+    {
+      "sample_id": "synthetic-000",
+      "task": "open_qa_synthetic",
+      "question": "What is the capital of France?",
+      "context": "",
+      "evidence": [],
+      "gold_answers": [
+        "Paris"
+      ],
+      "system_prompt": "You are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.",
+      "user_template": "{question}",
+      "split": "validation",
+      "label": null,
+      "label_source": "none",
+      "meta": {
+        "dataset": "synthetic"
+      }
+    },
+    {
+      "sample_id": "synthetic-001",
+      "task": "open_qa_synthetic",
+      "question": "What is the capital of Australia?",
+      "context": "",
+      "evidence": [],
+      "gold_answers": [
+        "Canberra"
+      ],
+      "system_prompt": "You are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.",
+      "user_template": "{question}",
+      "split": "validation",
+      "label": null,
+      "label_source": "none",
+      "meta": {
+        "dataset": "synthetic"
+      }
+    }
+  ]
+}

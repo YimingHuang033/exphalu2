@@ -10,7 +10,7 @@ from .cache import RunStore
 from .config_loader import load_config, require, ConfigError
 from .logging_utils import setup_logging, results_dir
 from .orchestrate import (cmd_verify_backend, cmd_generate, cmd_detect, cmd_judge,
-                          env_fingerprint, resolve_model, load_tokenizer)
+                          cmd_verify_judge, env_fingerprint, resolve_model, load_tokenizer)
 from .evaluate_stage import cmd_evaluate
 from .types import new_run_id
 
@@ -26,6 +26,8 @@ def _prepare(args, category_default):
         cfg["num_samples"] = args.num_samples
     if getattr(args, "backend", None):
         cfg["backend"] = args.backend
+    if getattr(args, "judge_provider", None):
+        cfg.setdefault("judge", {})["provider"] = args.judge_provider
     if getattr(args, "run_id", None):
         run_id = args.run_id
     else:
@@ -51,9 +53,13 @@ def main(argv=None):
         sp.add_argument("--dataset", default=None)
         sp.add_argument("--num-samples", type=int, default=None)
         sp.add_argument("--backend", default=None, choices=["vllm", "transformers", "sglang"])
+        sp.add_argument("--judge-provider", default=None,
+                        help="override judge.provider (e.g. gpt_oss_20b, startlux_local)")
         sp.add_argument("--strict-env", action="store_true")
 
     sp = sub.add_parser("verify-backend", help="real-GPU acceptance of a backend")
+    add_common(sp, "smoke")
+    sp = sub.add_parser("verify-judge", help="GPU acceptance of the configured judge provider")
     add_common(sp, "smoke")
     sp = sub.add_parser("generate", help="greedy + K sampled generations")
     add_common(sp, "generation_eval")
@@ -71,12 +77,19 @@ def main(argv=None):
     add_common(sp, "perf")
 
     args = p.parse_args(argv)
-    cfg, logger, run_dir, store = _prepare(args, {"verify-backend": "smoke"}.get(args.command, "generation_eval"))
+    cfg, logger, run_dir, store = _prepare(
+        args, {"verify-backend": "smoke", "verify-judge": "smoke"}.get(args.command, "generation_eval"))
 
     if args.command == "verify-backend":
         report = cmd_verify_backend(cfg, logger, run_dir)
         if report["status"] != "passed":
             logger.error("verify-backend FAILED")
+            return 1
+        return 0
+    if args.command == "verify-judge":
+        report = cmd_verify_judge(cfg, logger, run_dir)
+        if report["status"] != "passed":
+            logger.error("verify-judge FAILED")
             return 1
         return 0
     if args.command == "generate":

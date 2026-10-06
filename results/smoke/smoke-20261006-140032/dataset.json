@@ -1,0 +1,77 @@
+{
+  "dataset": "synthetic",
+  "examples": [
+    {
+      "sample_id": "synthetic-000",
+      "task": "open_qa_synthetic",
+      "question": "What is the capital of France?",
+      "context": "",
+      "evidence": [],
+      "gold_answers": [
+        "Paris"
+      ],
+      "system_prompt": "You are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.",
+      "user_template": "{question}",
+      "split": "validation",
+      "label": null,
+      "label_source": "none",
+      "meta": {
+        "dataset": "synthetic"
+      }
+    },
+    {
+      "sample_id": "synthetic-001",
+      "task": "open_qa_synthetic",
+      "question": "What is the capital of Australia?",
+      "context": "",
+      "evidence": [],
+      "gold_answers": [
+        "Canberra"
+      ],
+      "system_prompt": "You are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.",
+      "user_template": "{question}",
+      "split": "validation",
+      "label": null,
+      "label_source": "none",
+      "meta": {
+        "dataset": "synthetic"
+      }
+    },
+    {
+      "sample_id": "synthetic-002",
+      "task": "open_qa_synthetic",
+      "question": "Who wrote the novel '1984'?",
+      "context": "",
+      "evidence": [],
+      "gold_answers": [
+        "George Orwell"
+      ],
+      "system_prompt": "You are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.",
+      "user_template": "{question}",
+      "split": "validation",
+      "label": null,
+      "label_source": "none",
+      "meta": {
+        "dataset": "synthetic"
+      }
+    },
+    {
+      "sample_id": "synthetic-003",
+      "task": "open_qa_synthetic",
+      "question": "Which planet is known as the Red Planet?",
+      "context": "",
+      "evidence": [],
+      "gold_answers": [
+        "Mars"
+      ],
+      "system_prompt": "You are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.",
+      "user_template": "{question}",
+      "split": "validation",
+      "label": null,
+      "label_source": "none",
+      "meta": {
+        "dataset": "synthetic"
+      }
+    }
+  ]
+}

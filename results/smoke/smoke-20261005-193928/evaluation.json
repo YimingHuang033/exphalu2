@@ -1,0 +1,153 @@
+{
+  "_config_hash_": "b3f58bc85f4fc807",
+  "label_source": "judge",
+  "n_samples": 4,
+  "n_positive": 0,
+  "per_method": {
+    "eigenscore-last": {
+      "method": "eigenscore-last",
+      "n_samples": 4,
+      "n_invalid_scores": 0,
+      "n_used": 4,
+      "positive_rate": 0.0,
+      "auroc": NaN,
+      "auprc": NaN,
+      "auroc_ci": {
+        "ci_low": NaN,
+        "ci_high": NaN,
+        "n_boot": 0
+      }
+    },
+    "judge-continuous": {
+      "method": "judge-continuous",
+      "n_samples": 4,
+      "n_invalid_scores": 0,
+      "n_used": 4,
+      "positive_rate": 0.0,
+      "auroc": NaN,
+      "auprc": NaN,
+      "auroc_ci": {
+        "ci_low": NaN,
+        "ci_high": NaN,
+        "n_boot": 0
+      }
+    },
+    "length": {
+      "method": "length",
+      "n_samples": 4,
+      "n_invalid_scores": 0,
+      "n_used": 4,
+      "positive_rate": 0.0,
+      "auroc": NaN,
+      "auprc": NaN,
+      "auroc_ci": {
+        "ci_low": NaN,
+        "ci_high": NaN,
+        "n_boot": 0
+      }
+    },
+    "lnpe": {
+      "method": "lnpe",
+      "n_samples": 4,
+      "n_invalid_scores": 0,
+      "n_used": 4,
+      "positive_rate": 0.0,
+      "auroc": NaN,
+      "auprc": NaN,
+      "auroc_ci": {
+        "ci_low": NaN,
+        "ci_high": NaN,
+        "n_boot": 0
+      }
+    },
+    "outer-perplexity": {
+      "method": "outer-perplexity",
+      "n_samples": 4,
+      "n_invalid_scores": 0,
+      "n_used": 4,
+      "positive_rate": 0.0,
+      "auroc": NaN,
+      "auprc": NaN,
+      "auroc_ci": {
+        "ci_low": NaN,
+        "ci_high": NaN,
+        "n_boot": 0
+      }
+    },
+    "reppl-a": {
+      "method": "reppl-a",
+      "n_samples": 4,
+      "n_invalid_scores": 4,
+      "n_used": 0,
+      "positive_rate": NaN,
+      "auroc": NaN,
+      "auprc": NaN,
+      "auroc_ci": {
+        "ci_low": NaN,
+        "ci_high": NaN,
+        "n_boot": 0
+      }
+    },
+    "reppl-a-inner": {
+      "method": "reppl-a-inner",
+      "n_samples": 4,
+      "n_invalid_scores": 4,
+      "n_used": 0,
+      "positive_rate": NaN,
+      "auroc": NaN,
+      "auprc": NaN,
+      "auroc_ci": {
+        "ci_low": NaN,
+        "ci_high": NaN,
+        "n_boot": 0
+      }
+    },
+    "reppl-b": {
+      "method": "reppl-b",
+      "n_samples": 4,
+      "n_invalid_scores": 0,
+      "n_used": 4,
+      "positive_rate": 0.0,
+      "auroc": NaN,
+      "auprc": NaN,
+      "auroc_ci": {
+        "ci_low": NaN,
+        "ci_high": NaN,
+        "n_boot": 0
+      }
+    },
+    "reppl-b-inner": {
+      "method": "reppl-b-inner",
+      "n_samples": 4,
+      "n_invalid_scores": 0,
+      "n_used": 4,
+      "positive_rate": 0.0,
+      "auroc": NaN,
+      "auprc": NaN,
+      "auroc_ci": {
+        "ci_low": NaN,
+        "ci_high": NaN,
+        "n_boot": 0
+      }
+    },
+    "semantic-entropy-lexical": {
+      "method": "semantic-entropy-lexical",
+      "n_samples": 4,
+      "n_invalid_scores": 0,
+      "n_used": 4,
+      "positive_rate": 0.0,
+      "auroc": NaN,
+      "auprc": NaN,
+      "auroc_ci": {
+        "ci_low": NaN,
+        "ci_high": NaN,
+        "n_boot": 0
+      }
+    }
+  },
+  "judge_agreement_vs_em": {
+    "agreement": 1.0,
+    "n": 4
+  },
+  "eval_csv": "/home/tim/Proj/exphalu2/results/smoke/smoke-20261005-193928/eval.csv"
+}

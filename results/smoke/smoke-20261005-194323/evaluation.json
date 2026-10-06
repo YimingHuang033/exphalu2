@@ -1,0 +1,97 @@
+{
+  "_config_hash_": "3b6b29beabb7c0b4",
+  "label_source": "judge",
+  "n_samples": 2,
+  "n_positive": 0,
+  "per_method": {
+    "judge-continuous": {
+      "method": "judge-continuous",
+      "n_samples": 2,
+      "n_invalid_scores": 0,
+      "n_used": 2,
+      "positive_rate": 0.0,
+      "auroc": NaN,
+      "auprc": NaN,
+      "auroc_ci": {
+        "ci_low": NaN,
+        "ci_high": NaN,
+        "n_boot": 0
+      }
+    },
+    "length": {
+      "method": "length",
+      "n_samples": 2,
+      "n_invalid_scores": 0,
+      "n_used": 2,
+      "positive_rate": 0.0,
+      "auroc": NaN,
+      "auprc": NaN,
+      "auroc_ci": {
+        "ci_low": NaN,
+        "ci_high": NaN,
+        "n_boot": 0
+      }
+    },
+    "lnpe": {
+      "method": "lnpe",
+      "n_samples": 2,
+      "n_invalid_scores": 0,
+      "n_used": 2,
+      "positive_rate": 0.0,
+      "auroc": NaN,
+      "auprc": NaN,
+      "auroc_ci": {
+        "ci_low": NaN,
+        "ci_high": NaN,
+        "n_boot": 0
+      }
+    },
+    "outer-perplexity": {
+      "method": "outer-perplexity",
+      "n_samples": 2,
+      "n_invalid_scores": 0,
+      "n_used": 2,
+      "positive_rate": 0.0,
+      "auroc": NaN,
+      "auprc": NaN,
+      "auroc_ci": {
+        "ci_low": NaN,
+        "ci_high": NaN,
+        "n_boot": 0
+      }
+    },
+    "reppl-a": {
+      "method": "reppl-a",
+      "n_samples": 2,
+      "n_invalid_scores": 2,
+      "n_used": 0,
+      "positive_rate": NaN,
+      "auroc": NaN,
+      "auprc": NaN,
+      "auroc_ci": {
+        "ci_low": NaN,
+        "ci_high": NaN,
+        "n_boot": 0
+      }
+    },
+    "reppl-a-inner": {
+      "method": "reppl-a-inner",
+      "n_samples": 2,
+      "n_invalid_scores": 2,
+      "n_used": 0,
+      "positive_rate": NaN,
+      "auroc": NaN,
+      "auprc": NaN,
+      "auroc_ci": {
+        "ci_low": NaN,
+        "ci_high": NaN,
+        "n_boot": 0
+      }
+    }
+  },
+  "judge_agreement_vs_em": {
+    "agreement": 1.0,
+    "n": 2
+  },
+  "eval_csv": "/home/tim/Proj/exphalu2/results/smoke/smoke-20261005-194323/eval.csv"
+}

@@ -4,6 +4,9 @@ dataset: triviaqa
 num_samples: 16
 backend: vllm
 
+judge:
+  provider: gpt_oss_20b   # external judge (gpt-oss-20b), reference-aware prompt v2
+
 sampling:
   k: 5
   temperature: 1.0
@@ -20,3 +23,8 @@ methods:
   - eigenscore-last
   - semantic-entropy-lexical
   - length
+  - d-score-last
+  - sese
+  - semantic-energy
+  - reppl-b-rawq
+  - reppl-ab

@@ -13,6 +13,12 @@ class VLLMBackend(InferenceBackend):
     name = "vllm"
 
     def __init__(self, model_path: str, cfg: dict, logger=None):
+        import os
+
+        # Apply engine env-var knobs (e.g. VLLM_USE_FLASHINFER_SAMPLER) from config
+        # BEFORE vllm is imported / the engine core subprocess is spawned.
+        for k, v in (cfg.get("env") or {}).items():
+            os.environ.setdefault(str(k), str(v))
         try:
             import vllm
         except Exception as e:
@@ -64,10 +70,15 @@ class VLLMBackend(InferenceBackend):
 
     def _pool_engine(self):
         if self._pool_llm is None:
+            from vllm.config import PoolerConfig
+
             kwargs = dict(
                 model=self.model_path,
                 runner="pooling",
                 convert="embed",
+                # vLLM>=0.30: the pooling task must be declared at engine creation
+                # (runtime `pooling_task=` switching is rejected by LLM.encode).
+                pooler_config=PoolerConfig(task="token_embed"),
                 gpu_memory_utilization=float(self.cfg.get("gpu_memory_utilization", 0.85)),
                 max_model_len=int(self.cfg.get("max_model_len", 4096)),
                 enforce_eager=bool(self.cfg.get("enforce_eager", True)),
@@ -269,13 +280,17 @@ class VLLMBackend(InferenceBackend):
                 f"token_embed rows {arr.shape[0]} != sequence length {len(full_ids)}"
             )
         ctx_len = len(context_token_ids)
+        ctx_states = arr[:ctx_len]
         out_states = arr[ctx_len:]
-        if not np.isfinite(out_states).all():
+        if not np.isfinite(out_states).all() or not np.isfinite(ctx_states).all():
             raise BackendError("non-finite values in last hidden states")
         if float(np.abs(out_states).sum()) == 0.0:
             raise BackendError("all-zero pooled states guard triggered")
         return {
             "hidden": out_states,
+            # prompt-side states of the same replay; required by RePPL-A for input-unit
+            # representations u[j] (DESIGN.md section 4.1 step 3)
+            "hidden_context": ctx_states,
             "dtype": str(arr.dtype),
             "time_s": dt,
         }

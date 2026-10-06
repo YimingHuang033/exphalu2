@@ -1,0 +1,27 @@
+{
+  "_config_hash_": "3b6b29beabb7c0b4",
+  "model": "qwen3_5_4b",
+  "backend": "transformers",
+  "trajectories": [
+    {
+      "sample_id": "synthetic-000",
+      "prompt_text": "<|im_start|>system\nYou are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.<|im_end|>\n<|im_start|>user\nWhat is the capital of France?<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+      "greedy_text": "Paris",
+      "sample_texts": [
+        "Paris",
+        "Paris",
+        "Paris"
+      ]
+    },
+    {
+      "sample_id": "synthetic-001",
+      "prompt_text": "<|im_start|>system\nYou are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.<|im_end|>\n<|im_start|>user\nWhat is the capital of Australia?<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+      "greedy_text": "Canberra",
+      "sample_texts": [
+        "No capital",
+        "Canberra",
+        "Canberra"
+      ]
+    }
+  ]
+}

@@ -11,8 +11,9 @@ import numpy as np
 from .backends import build_backend
 from .cache import RunStore
 from .config_loader import require, ConfigError
-from .data.adapters import get_dataset_iterator, DATASET_STATUS
+from .data.adapters import get_dataset_iterator, DATASET_STATUS, IMPLEMENTED_DATASETS
 from .judges.local import LocalJudge
+from .judges.systemone import SystemOneJudge
 from .logging_utils import save_json, load_json
 from .baselines.registry import METHOD_REGISTRY
 from .pipeline import detect_one, load_generation, DEFAULT_METHODS
@@ -53,15 +54,15 @@ def peak_mem_mib() -> Optional[float]:
     return None
 
 
-def resolve_model(cfg: dict) -> str:
-    name = require(cfg, "model")
-    entry = (cfg.get("models") or {}).get(name)
+def resolve_model(cfg: dict, name: str | None = None) -> str:
+    key = name if name is not None else require(cfg, "model")
+    entry = (cfg.get("models") or {}).get(key)
     if entry is None:
-        raise ConfigError(f"model '{name}' not registered in config.models")
+        raise ConfigError(f"model '{key}' not registered in config.models")
     path = entry.get("path")
     if not path or not Path(path).exists():
         raise ConfigError(
-            f"model '{name}' path '{path}' does not exist on this machine. "
+            f"model '{key}' path '{path}' does not exist on this machine. "
             "Fix config/ or record the model as blocked; no silent substitution.")
     return path
 
@@ -79,7 +80,7 @@ def iter_examples(cfg, logger):
     ds_name = require(cfg, "dataset")
     status = DATASET_STATUS.get(ds_name, "unknown")
     if status != "implemented":
-        raise ConfigError(f"dataset '{ds_name}' status={status}; available now: triviaqa, synthetic")
+        raise ConfigError(f"dataset '{ds_name}' status={status}; implemented now: {IMPLEMENTED_DATASETS}")
     limit = int(cfg.get("num_samples", 8))
     exs = list(get_dataset_iterator(ds_name, cfg, limit))
     if not exs:
@@ -160,6 +161,9 @@ def cmd_generate(cfg, logger, run_dir, force=False) -> dict:
         "examples": [e.__dict__ for e in examples],
     })
     sampling_cfg = dict(cfg.get("sampling") or {})
+    # per-dataset sampling overrides (e.g. math needs more max_new_tokens), config-driven
+    ds_cfg = (cfg.get("datasets") or {}).get(require(cfg, "dataset")) or {}
+    sampling_cfg.update(dict(ds_cfg.get("sampling") or {}))
     eos = eos_ids(tokenizer)
     sampling_cfg.setdefault("stop_token_ids", list(eos))
     k = int(sampling_cfg.get("k", 5))
@@ -198,14 +202,27 @@ def cmd_generate(cfg, logger, run_dir, force=False) -> dict:
     return payload
 
 
-def load_entailment(cfg, logger):
+def load_entailment(cfg, logger, shared_nli=None):
+    import torch
+
     path = ((cfg.get("models") or {}).get("deberta-mnli") or {}).get("path")
     if not path or not Path(path).exists():
         logger.warning("[detect] deberta-mnli path missing; semantic-entropy blocked, "
                        "lexical variant used instead (recorded, not substituted silently).")
         return None
+    if shared_nli is not None:
+        # share the SeSE DebertaNLI instance to avoid a second copy in GPU memory
+        class _ArgmaxNLI:
+            def check_implication(self, a, b):
+                inputs = shared_nli.tokenizer(a, b, return_tensors="pt",
+                                              truncation=True, max_length=512).to(shared_nli.device)
+                with torch.no_grad():
+                    logits = shared_nli.model(**inputs).logits
+                return int(logits.argmax(dim=1)[0].item())
+
+        logger.info("[detect] entailment model shared with sese (single instance)")
+        return _ArgmaxNLI()
     try:
-        import torch
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
         tok = AutoTokenizer.from_pretrained(path)
@@ -228,6 +245,34 @@ def load_entailment(cfg, logger):
         return None
 
 
+def load_sese_models(cfg, logger):
+    """SeSE semantic stack: NLI probability model + sentence embedder.
+
+    Reuses models.deberta-mnli for the NLI part (config-driven dtype/device);
+    the embedder defaults to CPU (static embeddings, cheap) to keep GPU memory
+    for the engine and the NLI model.
+    """
+    scfg = cfg.get("sese") or {}
+    nli_path = ((cfg.get("models") or {}).get("deberta-mnli") or {}).get("path")
+    emb_path = ((cfg.get("models") or {}).get("sent-emb-static-mrl") or {}).get("path")
+    if not nli_path or not Path(nli_path).exists():
+        raise RuntimeError(f"sese: NLI model path missing/unreadable: {nli_path}")
+    if not emb_path:
+        raise RuntimeError("sese: sentence-embedding model path missing in config "
+                           "(models.sent-emb-static-mrl.path)")
+    from .baselines.sese import DebertaNLI, SentenceEmbedder
+
+    nli = DebertaNLI(nli_path,
+                     device=scfg.get("nli_device") or "cuda:0",
+                     dtype=scfg.get("nli_dtype") or "float16")
+    logger.info(f"[detect] sese NLI loaded from {nli_path} "
+                f"({scfg.get('nli_dtype') or 'float16'} on {nli.device})")
+    embedder = SentenceEmbedder(emb_path)
+    embedder.model.to(scfg.get("emb_device") or "cpu")
+    logger.info(f"[detect] sese embedder loaded from {emb_path}")
+    return nli, embedder
+
+
 def cmd_detect(cfg, logger, run_dir, force=False) -> dict:
     store = RunStore(run_dir, cfg["_config_hash_"])
     if store.up_to_date("detection") and not force:
@@ -243,9 +288,14 @@ def cmd_detect(cfg, logger, run_dir, force=False) -> dict:
 
     backend = build_backend(gen_payload["backend"], model_path, cfg.get("backend_cfg", {}), logger)
     methods = cfg.get("methods") or DEFAULT_METHODS
+    sese_models = None
+    if "sese" in methods:
+        sese_models = load_sese_models(cfg, logger)
     entailment_model = None
-    if "semantic-entropy" in methods:
-        entailment_model = load_entailment(cfg, logger)
+    if any(m in methods for m in ("semantic-entropy", "semantic-energy")):
+        # share the SeSE NLI instance when both methods are requested
+        shared = sese_models[0] if sese_models is not None else None
+        entailment_model = load_entailment(cfg, logger, shared_nli=shared)
 
     results = []
     t_all = time.time()
@@ -254,7 +304,8 @@ def cmd_detect(cfg, logger, run_dir, force=False) -> dict:
         t0 = time.time()
         try:
             r = detect_one(backend, tokenizer, cfg, gen, ex_by_id[gen.sample_id],
-                           entailment_model=entailment_model, interp=True, logger=logger)
+                           entailment_model=entailment_model, sese_models=sese_models,
+                           interp=True, logger=logger)
             r["replay_time_s"] = time.time() - t0
             results.append(r)
             risks = {m: (v.get("risk") if isinstance(v, dict) else None)
@@ -275,12 +326,140 @@ def cmd_detect(cfg, logger, run_dir, force=False) -> dict:
     }
     store.save_stage("detection", payload)
     backend.close()
+    if sese_models is not None:
+        del sese_models
     if entailment_model is not None:
         del entailment_model
         if _TORCH_OK:
             torch.cuda.empty_cache()
     logger.info(f"[detect] done: {len(results)} samples")
     return payload
+
+
+def resolve_judge_model(cfg, logger) -> dict:
+    """Resolve the judge provider → a concrete judge construction spec.
+
+    Providers:
+      - local_self / gpt_oss_20b (adapter 'local'): run in-process on the
+        InferenceBackend contract; target model itself or a separate local model.
+      - startlux_local (adapter 'systemone'): HTTP client to an isolated local
+        /v1/systemone decision service (llama.cpp + startlux_decision); the
+        judge runs there, no GPU backend of this repo is involved.
+    Remote providers (api_llm / jev_api) stay blocked.
+    """
+    judge_cfg = cfg.get("judge") or {}
+    provider_name = judge_cfg.get("provider", "local_self")
+    provider = (cfg.get("judge_providers") or {}).get(provider_name)
+    if provider is None:
+        raise ConfigError(f"judge provider '{provider_name}' not registered in judge_providers")
+    if provider.get("status") != "implemented":
+        raise ConfigError(f"judge provider '{provider_name}' status={provider.get('status')}; blocked")
+    adapter = provider.get("adapter")
+    spec = {"provider": provider_name, "adapter": adapter}
+    if adapter == "local":
+        model_key = provider.get("model") or require(cfg, "model")
+        spec["model_key"] = model_key
+        spec["path"] = resolve_model(cfg, model_key)
+        spec["backend_cfg"] = {**dict(cfg.get("backend_cfg") or {}),
+                               **dict(provider.get("backend_cfg") or {})}
+    elif adapter == "systemone":
+        model_key = provider.get("model")
+        entry = (cfg.get("models") or {}).get(model_key) or {}
+        spec["model_key"] = model_key
+        spec["path"] = entry.get("path", "")
+        spec["base_url"] = require(cfg, f"judge_providers.{provider_name}.base_url")
+        spec["correct_option"] = provider.get("correct_option", "correct")
+        spec["hallucinated_option"] = provider.get("hallucinated_option", "hallucinated")
+        spec["service"] = provider.get("service") or {}
+    else:
+        raise ConfigError(f"judge provider '{provider_name}' adapter={adapter!r}; "
+                          "only local and systemone adapters are implemented")
+    logger.info(f"[judge] provider={provider_name} adapter={adapter} model={spec['model_key']}")
+    return spec
+
+
+def build_judge(cfg, jspec, logger):
+    """Construct the judge object from a resolved provider spec."""
+    judge_cfg = cfg.get("judge") or {}
+    if jspec["adapter"] == "systemone":
+        svc = jspec.get("service") or {}
+        judge = SystemOneJudge(
+            base_url=jspec["base_url"], provider_name=jspec["provider"],
+            correct_option=jspec["correct_option"],
+            hallucinated_option=jspec["hallucinated_option"],
+            prompt_version=judge_cfg.get("prompt_version", "judge-yesno-v2"),
+            instructions=judge_cfg.get("systemone_instructions"),
+            criteria=judge_cfg.get("systemone_criteria"),
+            max_chars=judge_cfg.get("max_chars") or {},
+            timeout_s=float(svc.get("timeout_s", 120.0)))
+        wait_s = float(svc.get("wait_ready_s", 600.0))
+        logger.info(f"[judge] waiting for systemone service {jspec['base_url']} (up to {wait_s:.0f}s)")
+        try:
+            judge.wait_ready(wait_s)
+        except ConnectionError as e:
+            raise ConfigError(
+                f"systemone judge service not reachable: {e}. Start it with "
+                "`bash scripts/setup/startlux_service.sh start`; failing honestly, no fallback judge.")
+        return judge, None
+    backend = build_backend(cfg.get("backend", "vllm"), jspec["path"],
+                            jspec["backend_cfg"], logger)
+    tokenizer = load_tokenizer(jspec["path"])
+    judge = LocalJudge(backend, tokenizer,
+                       prompt_version=judge_cfg.get("prompt_version", "judge-yesno-v2"),
+                       reasoning_effort=judge_cfg.get("reasoning_effort"),
+                       max_chars=judge_cfg.get("max_chars") or {})
+    return judge, backend
+
+
+VERIFY_JUDGE_CASES = [
+    {"case_id": "correct-factual", "question": "What is the capital of France?",
+     "answer": "Paris", "gold": ["Paris"], "expected": 0},
+    {"case_id": "wrong-factual", "question": "What is the capital of France?",
+     "answer": "Berlin", "gold": ["Paris"], "expected": 1},
+    {"case_id": "correct-math", "question": "What is 7 times 8?",
+     "answer": "Final answer: 56", "gold": ["56"], "expected": 0},
+    {"case_id": "wrong-math", "question": "What is 7 times 8?",
+     "answer": "Final answer: 54", "gold": ["56"], "expected": 1},
+]
+
+
+def cmd_verify_judge(cfg, logger, run_dir) -> dict:
+    """Acceptance of the configured judge provider on canned ground-truth cases
+    (works for both local and systemone adapters)."""
+    jspec = resolve_judge_model(cfg, logger)
+    judge, backend = build_judge(cfg, jspec, logger)
+    report = {"provider": jspec["provider"], "adapter": jspec["adapter"],
+              "model": jspec["model_key"], "model_path": jspec.get("path", ""),
+              "prompt_version": judge.prompt_version, "cases": []}
+    if jspec["adapter"] == "local":
+        report["final_channel_prefix"] = judge._final_prefix
+    gating_failed = []
+    for case in VERIFY_JUDGE_CASES:
+        r = judge.judge(case["case_id"], case["question"], case["answer"],
+                        context="", gold_answers=case["gold"])
+        ok = r.hard_verdict == case["expected"]
+        gating_failed.append(not ok)
+        report["cases"].append({
+            "case_id": case["case_id"], "expected": case["expected"],
+            "hard_verdict": r.hard_verdict, "continuous_score": r.continuous_score,
+            "raw_output": r.raw_output, "ok": bool(ok), "timing_s": r.timing_s,
+        })
+        logger.info(f"[verify-judge] {case['case_id']}: verdict={r.hard_verdict} "
+                    f"expected={case['expected']} cont={r.continuous_score} "
+                    f"raw={r.raw_output!r} -> {'OK' if ok else 'FAIL'}")
+    cont_ok = all(c["continuous_score"] is not None for c in report["cases"])
+    report["checks"] = {
+        "hard_verdicts_match_ground_truth": not any(gating_failed),
+        "continuous_label_likelihood_available": bool(cont_ok),
+    }
+    report["status"] = "passed" if not any(gating_failed) else "failed"
+    if not cont_ok:
+        logger.warning("[verify-judge] continuous label-likelihood unavailable on some cases "
+                       "(recorded; hard verdicts remain the label source)")
+    if backend is not None:
+        backend.close()
+    save_json(run_dir / "verify_judge.json", report)
+    return report
 
 
 def cmd_judge(cfg, logger, run_dir, force=False) -> dict:
@@ -291,30 +470,30 @@ def cmd_judge(cfg, logger, run_dir, force=False) -> dict:
     gen_payload = store.load_stage("generation")
     dataset_payload = load_json(run_dir / "dataset.json")
     ex_by_id = {e["sample_id"]: Example(**e) for e in dataset_payload["examples"]}
-    model_path = gen_payload["model_path"]
-    tokenizer = load_tokenizer(model_path)
-    judge_cfg = cfg.get("judge") or {}
-    backend = build_backend(cfg.get("backend", "vllm"), model_path,
-                            cfg.get("backend_cfg", {}), logger)
-    judge = LocalJudge(backend, tokenizer,
-                       prompt_version=judge_cfg.get("prompt_version", "judge-yesno-v1"))
+    jspec = resolve_judge_model(cfg, logger)
+    judge, backend = build_judge(cfg, jspec, logger)
 
     per_sample = []
     t_all = time.time()
     for g in gen_payload["generations"]:
         gen = load_generation(g)
         ex = ex_by_id[gen.sample_id]
-        r = judge.judge(gen.sample_id, ex.question, gen.greedy.text, context=ex.context or "")
+        r = judge.judge(gen.sample_id, ex.question, gen.greedy.text,
+                        context=ex.context or "", gold_answers=list(ex.gold_answers or []))
         per_sample.append(r.__dict__)
         logger.info(f"[judge] {gen.sample_id}: verdict={r.hard_verdict} "
                     f"score={r.continuous_score} ({r.timing_s:.2f}s) raw={r.raw_output!r}")
     payload = {
-        "judge_model": require(cfg, "model"), "backend": backend.name,
+        "judge_model": jspec["model_key"], "judge_model_path": jspec.get("path", ""),
+        "judge_provider": jspec["provider"], "judge_adapter": jspec["adapter"],
         "prompt_version": judge.prompt_version,
+        "reference_aware": True,
+        "backend": "systemone-http" if jspec["adapter"] == "systemone" else backend.name,
         "per_sample": per_sample,
         "timing": {"total_s": time.time() - t_all},
     }
     store.save_stage("judge", payload)
-    backend.close()
+    if backend is not None:
+        backend.close()
     logger.info("[judge] done")
     return payload

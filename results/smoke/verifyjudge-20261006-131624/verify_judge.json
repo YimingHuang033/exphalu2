@@ -1,0 +1,50 @@
+{
+  "provider": "gpt_oss_20b",
+  "model": "gpt-oss-20b",
+  "model_path": "/mnt/data/gpt-oss-20b",
+  "prompt_version": "judge-yesno-v2",
+  "final_channel_prefix": "<|channel|>final<|message|>",
+  "cases": [
+    {
+      "case_id": "correct-factual",
+      "expected": 0,
+      "hard_verdict": 0,
+      "continuous_score": 7.889266347786922e-06,
+      "raw_output": "Yes",
+      "ok": true,
+      "timing_s": 43.35732173919678
+    },
+    {
+      "case_id": "wrong-factual",
+      "expected": 1,
+      "hard_verdict": 1,
+      "continuous_score": 0.999999057755406,
+      "raw_output": "No",
+      "ok": true,
+      "timing_s": 0.05726170539855957
+    },
+    {
+      "case_id": "correct-math",
+      "expected": 0,
+      "hard_verdict": 0,
+      "continuous_score": 0.00023050682561758258,
+      "raw_output": "Yes",
+      "ok": true,
+      "timing_s": 0.053601980209350586
+    },
+    {
+      "case_id": "wrong-math",
+      "expected": 1,
+      "hard_verdict": 1,
+      "continuous_score": 0.9999995549147889,
+      "raw_output": "No",
+      "ok": true,
+      "timing_s": 0.053748369216918945
+    }
+  ],
+  "checks": {
+    "hard_verdicts_match_ground_truth": true,
+    "continuous_label_likelihood_available": true
+  },
+  "status": "passed"
+}

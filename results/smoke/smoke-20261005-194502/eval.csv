@@ -1,0 +1,11 @@
+method,n_samples,n_invalid_scores,n_used,positive_rate,auroc,auprc,auroc_ci
+eigenscore-last,4,0,4,0.0,,,"{'ci_low': nan, 'ci_high': nan, 'n_boot': 0}"
+judge-continuous,4,0,4,0.0,,,"{'ci_low': nan, 'ci_high': nan, 'n_boot': 0}"
+length,4,0,4,0.0,,,"{'ci_low': nan, 'ci_high': nan, 'n_boot': 0}"
+lnpe,4,0,4,0.0,,,"{'ci_low': nan, 'ci_high': nan, 'n_boot': 0}"
+outer-perplexity,4,0,4,0.0,,,"{'ci_low': nan, 'ci_high': nan, 'n_boot': 0}"
+reppl-a,4,0,4,0.0,,,"{'ci_low': nan, 'ci_high': nan, 'n_boot': 0}"
+reppl-a-inner,4,0,4,0.0,,,"{'ci_low': nan, 'ci_high': nan, 'n_boot': 0}"
+reppl-b,4,0,4,0.0,,,"{'ci_low': nan, 'ci_high': nan, 'n_boot': 0}"
+reppl-b-inner,4,0,4,0.0,,,"{'ci_low': nan, 'ci_high': nan, 'n_boot': 0}"
+semantic-entropy-lexical,4,0,4,0.0,,,"{'ci_low': nan, 'ci_high': nan, 'n_boot': 0}"

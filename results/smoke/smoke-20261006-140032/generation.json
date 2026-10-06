@@ -1,0 +1,587 @@
+{
+  "_config_hash_": "a99288460e55f284",
+  "model": "qwen3_5_4b",
+  "model_path": "/home/tim/Proj/resource/Qwen3.5-4B",
+  "backend": "vllm",
+  "sampling_config": {
+    "k": 3,
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "top_k": 10,
+    "max_new_tokens": 16,
+    "seed": 42,
+    "stop_token_ids": [
+      248044,
+      248046
+    ]
+  },
+  "generations": [
+    {
+      "sample_id": "synthetic-000",
+      "prompt_text": "<|im_start|>system\nYou are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.<|im_end|>\n<|im_start|>user\nWhat is the capital of France?<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+      "prompt_token_ids": [
+        248045,
+        8678,
+        198,
+        2523,
+        513,
+        264,
+        10631,
+        14791,
+        17313,
+        13,
+        21134,
+        279,
+        1156,
+        579,
+        3296,
+        3413,
+        284,
+        943,
+        13,
+        32879,
+        2400,
+        22157,
+        13,
+        248046,
+        198,
+        248045,
+        846,
+        198,
+        3710,
+        369,
+        279,
+        6511,
+        314,
+        9338,
+        30,
+        248046,
+        198,
+        248045,
+        74455,
+        198,
+        248068,
+        271,
+        248069,
+        271
+      ],
+      "greedy": {
+        "sample_id": "synthetic-000",
+        "k": 0,
+        "token_ids": [
+          57590,
+          248046
+        ],
+        "text": "Paris",
+        "token_logprobs": [
+          -0.001634453423321247,
+          -0.03659520298242569
+        ],
+        "finish_reason": "stop",
+        "valid_len": 2
+      },
+      "samples": [
+        {
+          "sample_id": "synthetic-000",
+          "k": 1,
+          "token_ids": [
+            57590,
+            248046
+          ],
+          "text": "Paris",
+          "token_logprobs": [
+            -0.001634453423321247,
+            -0.03659520298242569
+          ],
+          "finish_reason": "stop",
+          "valid_len": 2
+        },
+        {
+          "sample_id": "synthetic-000",
+          "k": 2,
+          "token_ids": [
+            57590,
+            248046
+          ],
+          "text": "Paris",
+          "token_logprobs": [
+            -0.001634453423321247,
+            -0.03659520298242569
+          ],
+          "finish_reason": "stop",
+          "valid_len": 2
+        },
+        {
+          "sample_id": "synthetic-000",
+          "k": 3,
+          "token_ids": [
+            57590,
+            248046
+          ],
+          "text": "Paris",
+          "token_logprobs": [
+            -0.001634453423321247,
+            -0.03659520298242569
+          ],
+          "finish_reason": "stop",
+          "valid_len": 2
+        }
+      ],
+      "sampling_config": {
+        "k": 3,
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "top_k": 10,
+        "max_new_tokens": 16,
+        "seed": 42,
+        "stop_token_ids": [
+          248044,
+          248046
+        ]
+      },
+      "template_hash": "a4aee8afcf2e",
+      "model_revision": "",
+      "backend": "vllm"
+    },
+    {
+      "sample_id": "synthetic-001",
+      "prompt_text": "<|im_start|>system\nYou are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.<|im_end|>\n<|im_start|>user\nWhat is the capital of Australia?<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+      "prompt_token_ids": [
+        248045,
+        8678,
+        198,
+        2523,
+        513,
+        264,
+        10631,
+        14791,
+        17313,
+        13,
+        21134,
+        279,
+        1156,
+        579,
+        3296,
+        3413,
+        284,
+        943,
+        13,
+        32879,
+        2400,
+        22157,
+        13,
+        248046,
+        198,
+        248045,
+        846,
+        198,
+        3710,
+        369,
+        279,
+        6511,
+        314,
+        8071,
+        30,
+        248046,
+        198,
+        248045,
+        74455,
+        198,
+        248068,
+        271,
+        248069,
+        271
+      ],
+      "greedy": {
+        "sample_id": "synthetic-001",
+        "k": 0,
+        "token_ids": [
+          6503,
+          60241,
+          248046
+        ],
+        "text": "Canberra",
+        "token_logprobs": [
+          -0.2967882752418518,
+          -0.00014435203047469258,
+          -0.046039074659347534
+        ],
+        "finish_reason": "stop",
+        "valid_len": 3
+      },
+      "samples": [
+        {
+          "sample_id": "synthetic-001",
+          "k": 1,
+          "token_ids": [
+            6503,
+            60241,
+            248046
+          ],
+          "text": "Canberra",
+          "token_logprobs": [
+            -0.2967882752418518,
+            -0.00014435203047469258,
+            -0.046039074659347534
+          ],
+          "finish_reason": "stop",
+          "valid_len": 3
+        },
+        {
+          "sample_id": "synthetic-001",
+          "k": 2,
+          "token_ids": [
+            6503,
+            60241,
+            248046
+          ],
+          "text": "Canberra",
+          "token_logprobs": [
+            -0.2967882752418518,
+            -0.00014435203047469258,
+            -0.046039074659347534
+          ],
+          "finish_reason": "stop",
+          "valid_len": 3
+        },
+        {
+          "sample_id": "synthetic-001",
+          "k": 3,
+          "token_ids": [
+            6503,
+            60241,
+            248046
+          ],
+          "text": "Canberra",
+          "token_logprobs": [
+            -0.2967882752418518,
+            -0.00014435203047469258,
+            -0.046039074659347534
+          ],
+          "finish_reason": "stop",
+          "valid_len": 3
+        }
+      ],
+      "sampling_config": {
+        "k": 3,
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "top_k": 10,
+        "max_new_tokens": 16,
+        "seed": 42,
+        "stop_token_ids": [
+          248044,
+          248046
+        ]
+      },
+      "template_hash": "a4aee8afcf2e",
+      "model_revision": "",
+      "backend": "vllm"
+    },
+    {
+      "sample_id": "synthetic-002",
+      "prompt_text": "<|im_start|>system\nYou are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.<|im_end|>\n<|im_start|>user\nWho wrote the novel '1984'?<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+      "prompt_token_ids": [
+        248045,
+        8678,
+        198,
+        2523,
+        513,
+        264,
+        10631,
+        14791,
+        17313,
+        13,
+        21134,
+        279,
+        1156,
+        579,
+        3296,
+        3413,
+        284,
+        943,
+        13,
+        32879,
+        2400,
+        22157,
+        13,
+        248046,
+        198,
+        248045,
+        846,
+        198,
+        14749,
+        5947,
+        279,
+        11183,
+        359,
+        16,
+        24,
+        23,
+        19,
+        67619,
+        248046,
+        198,
+        248045,
+        74455,
+        198,
+        248068,
+        271,
+        248069,
+        271
+      ],
+      "greedy": {
+        "sample_id": "synthetic-002",
+        "k": 0,
+        "token_ids": [
+          37663,
+          79897,
+          248046
+        ],
+        "text": "George Orwell",
+        "token_logprobs": [
+          -0.028033699840307236,
+          -0.0011819765204563737,
+          -0.14038027822971344
+        ],
+        "finish_reason": "stop",
+        "valid_len": 3
+      },
+      "samples": [
+        {
+          "sample_id": "synthetic-002",
+          "k": 1,
+          "token_ids": [
+            37663,
+            79897,
+            248046
+          ],
+          "text": "George Orwell",
+          "token_logprobs": [
+            -0.028033699840307236,
+            -0.0011819765204563737,
+            -0.14038027822971344
+          ],
+          "finish_reason": "stop",
+          "valid_len": 3
+        },
+        {
+          "sample_id": "synthetic-002",
+          "k": 2,
+          "token_ids": [
+            37663,
+            79897,
+            248046
+          ],
+          "text": "George Orwell",
+          "token_logprobs": [
+            -0.028033699840307236,
+            -0.0011819765204563737,
+            -0.14038027822971344
+          ],
+          "finish_reason": "stop",
+          "valid_len": 3
+        },
+        {
+          "sample_id": "synthetic-002",
+          "k": 3,
+          "token_ids": [
+            37663,
+            79897,
+            248046
+          ],
+          "text": "George Orwell",
+          "token_logprobs": [
+            -0.028033699840307236,
+            -0.0011819765204563737,
+            -0.14038027822971344
+          ],
+          "finish_reason": "stop",
+          "valid_len": 3
+        }
+      ],
+      "sampling_config": {
+        "k": 3,
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "top_k": 10,
+        "max_new_tokens": 16,
+        "seed": 42,
+        "stop_token_ids": [
+          248044,
+          248046
+        ]
+      },
+      "template_hash": "a4aee8afcf2e",
+      "model_revision": "",
+      "backend": "vllm"
+    },
+    {
+      "sample_id": "synthetic-003",
+      "prompt_text": "<|im_start|>system\nYou are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.<|im_end|>\n<|im_start|>user\nWhich planet is known as the Red Planet?<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n",
+      "prompt_token_ids": [
+        248045,
+        8678,
+        198,
+        2523,
+        513,
+        264,
+        10631,
+        14791,
+        17313,
+        13,
+        21134,
+        279,
+        1156,
+        579,
+        3296,
+        3413,
+        284,
+        943,
+        13,
+        32879,
+        2400,
+        22157,
+        13,
+        248046,
+        198,
+        248045,
+        846,
+        198,
+        22365,
+        11247,
+        369,
+        3750,
+        430,
+        279,
+        3605,
+        27893,
+        30,
+        248046,
+        198,
+        248045,
+        74455,
+        198,
+        248068,
+        271,
+        248069,
+        271
+      ],
+      "greedy": {
+        "sample_id": "synthetic-003",
+        "k": 0,
+        "token_ids": [
+          44,
+          1506,
+          248046
+        ],
+        "text": "Mars",
+        "token_logprobs": [
+          -0.0012661544606089592,
+          -0.00013422065239865333,
+          -0.023608651012182236
+        ],
+        "finish_reason": "stop",
+        "valid_len": 3
+      },
+      "samples": [
+        {
+          "sample_id": "synthetic-003",
+          "k": 1,
+          "token_ids": [
+            44,
+            1506,
+            248046
+          ],
+          "text": "Mars",
+          "token_logprobs": [
+            -0.0012661544606089592,
+            -0.00013422065239865333,
+            -0.023608651012182236
+          ],
+          "finish_reason": "stop",
+          "valid_len": 3
+        },
+        {
+          "sample_id": "synthetic-003",
+          "k": 2,
+          "token_ids": [
+            44,
+            1506,
+            248046
+          ],
+          "text": "Mars",
+          "token_logprobs": [
+            -0.0012661544606089592,
+            -0.00013422065239865333,
+            -0.023608651012182236
+          ],
+          "finish_reason": "stop",
+          "valid_len": 3
+        },
+        {
+          "sample_id": "synthetic-003",
+          "k": 3,
+          "token_ids": [
+            44,
+            1506,
+            248046
+          ],
+          "text": "Mars",
+          "token_logprobs": [
+            -0.0012661544606089592,
+            -0.00013422065239865333,
+            -0.023608651012182236
+          ],
+          "finish_reason": "stop",
+          "valid_len": 3
+        }
+      ],
+      "sampling_config": {
+        "k": 3,
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "top_k": 10,
+        "max_new_tokens": 16,
+        "seed": 42,
+        "stop_token_ids": [
+          248044,
+          248046
+        ]
+      },
+      "template_hash": "a4aee8afcf2e",
+      "model_revision": "",
+      "backend": "vllm"
+    }
+  ],
+  "per_sample_meta": [
+    {
+      "sample_id": "synthetic-000",
+      "validity": "ok",
+      "reason": "",
+      "gen_time_s": 32.8500816822052
+    },
+    {
+      "sample_id": "synthetic-001",
+      "validity": "ok",
+      "reason": "",
+      "gen_time_s": 0.2713956832885742
+    },
+    {
+      "sample_id": "synthetic-002",
+      "validity": "ok",
+      "reason": "",
+      "gen_time_s": 0.2932455539703369
+    },
+    {
+      "sample_id": "synthetic-003",
+      "validity": "ok",
+      "reason": "",
+      "gen_time_s": 0.2889254093170166
+    }
+  ],
+  "timing": {
+    "total_s": 33.71722984313965
+  },
+  "peak_mem_mib": 0.0
+}

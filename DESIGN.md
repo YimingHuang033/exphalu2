@@ -637,3 +637,31 @@ exphalu2/
 - 冒烟链：`verify-backend → unit-tests → smoke（合成数据 A/B/baseline/judge/eval 全链，Qwen3.5-4B + 小模型双后端）→ generation_eval（trivia_qa 小样本真实链）`。全部通过后允许更大规模。
 - 验收门槛沿用 §11 M0–M1：真实 GPU 信号验收 JSON；固定数组数学检查；K<2、全零作用、非有限状态返回显式状态码；`eval.csv` 可由 `vis` 消费。
 - vLLM 0.30.0 升级为后台进行：若升级后 API 兼容性破坏现有后端，回退 0.15.1 + legacy 端口完成本轮验证，升级问题如实写入已知问题。
+
+## P5. 第二轮实施记录（2026-10-05）
+
+### P5.1 vLLM 0.30.0 升级复验（原 blocked 项解除）
+
+- 环境：vLLM 0.30.0 + torch 2.13.0 + transformers 5.18.0。Qwen3.5-4B 在 vLLM 原生与 legacy Transformers 端口**双路验收通过**（verify-backend logprob 对齐 max diff 0.0000；token_embed 末层状态 (T,2560)；全链冒烟 OK）。
+- 两处 0.30.0 适配（`reppl2/backends/vllm_backend.py`）：
+  1. flashinfer 采样 kernel 需 nvcc JIT，本机无 CUDA toolkit → 引擎采样时崩溃。经 `backend_cfg.env.VLLM_USE_FLASHINFER_SAMPLER="0"`（config 驱动，setdefault 注入）回退原生 torch 采样。
+  2. pooling task 必须建引擎时声明：`LLM(pooler_config=PoolerConfig(task="token_embed"))`；运行时 `pooling_task=` 切换被 0.30.0 拒绝。
+
+### P5.2 RepPPL-A 对齐 bug 修复（实质正确性修复）
+
+- **症状**：Qwen3.5-4B triviaqa 16 样本中 14 个 reppl-a invalid（"no input unit could be aligned"），2 个"成功"样本实为 J=1 退化。
+- **根因一**：后端 `replay_last_hidden` 只返回输出 token 状态，reppl-a 的 u[j]（输入单元表示，DESIGN §4.1 步骤 3）需要 greedy 重放的 **prompt 侧**状态。两后端现均返回 `hidden_context`（prompt 侧），`hidden`（输出侧）合同不变。
+- **根因二**：输入单元的 char span 相对 question/system 原文，却被直接对渲染后 prompt_text 做 token 对齐（聊天模板前缀使 span 整体错位）。`segmentation._prompt_span` 现先用单元文本在 prompt_text 中精确定位，失败才回退原 span 并记 `span_source=source_relative_unverified`；`char_start_in_prompt/char_end_in_prompt/span_source` 全部入 interp 记录。reppl-b 的编辑合同（源相对 span + find 校验）不受影响。
+- 此前 Qwen2.5-0.5B 上 reppl-a AUROC=1.0 的历史记录实际由 ε·Outer 驱动（J=1 退化），不是 Inner 增量——如实修正认知。
+- 新增 `tests/test_alignment.py`（mock tokenizer 固定数组：span 翻译、token 落点、上下文状态池化、无对齐单元拒绝）。
+
+### P5.3 P0 强基线：d-score-last 与 sese（§8.1 清单内）
+
+- **`d-score-last`**（D-Score，arXiv:2607.24586v1，2026-07）：σ₁/σᵢ≤τ 的奇异方向计数，Gram 特征值精确实现，未中心化，τ=10 入 config；**原版用最优层（通常非末层）**，vLLM 原生路径只有末层 → 显式命名 `d-score-last` 变体，原版配置保持 `planned`。
+- **`sese`**（SeSE，UAI 2026，arXiv:2511.16275；官方仓库 SELGroup/SeSE @8d4c6c5）：编码树结构熵逐位移植（10 个种子图与官方实现误差 <1e-12）；语义图按官方协议（deberta-v2-xlarge-mnli 蕴含概率 0.65 + 句向量余弦 0.35 混合 → 聚类阈值 0.3 → 簇内蕴含边 → PageRank/Kruskal 连通性修复）。**偏离项显式记录**：官方 GPT-4o 答案增强因无 key 跳过（`answer_enhancement: "none:blocked-no-api"` 入产物）；句向量模型经 hf-mirror.com 下载（huggingface.co 本网络不可达）。
+- 两者均接入 detect 管线 + 注册表 `implemented` + 固定数组测试（`tests/test_p0_baselines.py`，含方向合同与退化拒绝）。triviaqa 16 样本验收：sese AUROC 0.75/AUPRC 0.68，d-score-last AUROC 0.16（小样本方向存疑，如实记录待复核）。
+
+### P5.4 其余
+
+- 单元测试 27→40 项。results/smoke 入库两个新冒烟 run 作回归对照。
+- S5 剩余 planned：HAD、RAUQ、LAFaCT、LaaB、Semantic Energy、D-Score 原版层配置、多轮轨迹适配器、SQuAD/CoQA 数据挂载。

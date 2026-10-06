@@ -76,6 +76,21 @@ def segment_input(example, tokenizer=None, max_units: int = 8) -> list[dict]:
     return units
 
 
+def _prompt_span(u: dict, prompt_text: str) -> tuple[int, int, str]:
+    """Translate a unit's char span (relative to its source string, e.g. the raw
+    question or system prompt) into coordinates of the rendered prompt_text.
+
+    Chat templates prepend/append template symbols, so source-relative spans do NOT
+    index prompt_text directly. Prefer locating the unit text verbatim; fall back to
+    the raw span only as a last resort (recorded as unverified).
+    """
+    text = u.get("text") or ""
+    if text and text in prompt_text:
+        i = prompt_text.find(text)
+        return i, i + len(text), "text_search"
+    return int(u["char_start"]), int(u["char_end"]), "source_relative_unverified"
+
+
 def unit_token_spans(units: list[dict], prompt_text: str, prompt_token_ids: list[int],
                      tokenizer) -> list[dict]:
     """Resolve token spans of units against the rendered prompt via character offsets.
@@ -99,9 +114,11 @@ def unit_token_spans(units: list[dict], prompt_text: str, prompt_token_ids: list
     offsets = encoded.get("offset_mapping") if isinstance(encoded, dict) else getattr(encoded, "offset_mapping", None) if encoded is not None else None
     if offsets is not None and len(offsets) == len(prompt_token_ids):
         for u in units:
-            cs, ce = u["char_start"], u["char_end"]
+            cs, ce, span_src = _prompt_span(u, prompt_text)
             toks = [i for i, (a, b) in enumerate(offsets) if a < ce and b > cs]
             u2 = dict(u)
+            u2["char_start_in_prompt"], u2["char_end_in_prompt"] = cs, ce
+            u2["span_source"] = span_src
             if toks:
                 u2["token_start"], u2["token_end"] = min(toks), max(toks) + 1
             else:
@@ -116,7 +133,9 @@ def unit_token_spans(units: list[dict], prompt_text: str, prompt_token_ids: list
         token_texts = None
     for u in units:
         u2 = dict(u)
-        cs, ce = u["char_start"], u["char_end"]
+        cs, ce, span_src = _prompt_span(u, prompt_text)
+        u2["char_start_in_prompt"], u2["char_end_in_prompt"] = cs, ce
+        u2["span_source"] = span_src
         if token_texts is None:
             u2["token_start"], u2["token_end"] = -1, -1
         else:

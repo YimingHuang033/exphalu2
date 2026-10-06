@@ -9,6 +9,10 @@ backend_cfg:
   enforce_eager: true
   dtype: bfloat16
   seed: 42
+  env:                        # engine env-var knobs, applied by the backend before loading vLLM
+    # No CUDA toolkit/nvcc on this machine: flashinfer JIT sampler crashes the engine
+    # core mid-sampling (RuntimeError: Could not find nvcc). 0 = native torch sampler.
+    VLLM_USE_FLASHINFER_SAMPLER: "0"
 
 models:
   qwen3_5_4b:
@@ -18,12 +22,33 @@ models:
     path: /mnt/data/Qwen2.5-0.5B-Instruct
   qwen2_5_1_5b:
     path: /mnt/data/Qwen2.5-1.5B-Instruct
+  qwen2_5_7b:
+    path: /mnt/data/Qwen2.5-7B-Instruct
+    note: shard readability spot-checked 2026-10-06 (multi-offset dd)
+  qwen3_1_7b:
+    path: /mnt/data/Qwen3-1.7B
+    note: shards fully re-read 2026-10-06, no I/O error
   qwen3_4b:
     path: /mnt/data/Qwen3-4B
-    note: BLOCKED on this machine - shard 1 has unreadable sectors (I/O error / SIGBUS)
+    note: BLOCKED on this machine - shard 1 re-confirmed unreadable 2026-10-06 (I/O error)
+  qwen3_8b:
+    path: /mnt/data/Qwen3-8B
+    note: shard readability spot-checked 2026-10-06 (multi-offset dd)
+  gpt-oss-20b:
+    path: /mnt/data/gpt-oss-20b
+    note: external judge model (mxfp4 MoE); shards fully re-read 2026-10-06, no I/O error
+  startlux-decision-27b:
+    path: /mnt/data/StartLux-Decision-27B-Q8_0-GGUF
+    note: judge decision model (Qwen3.5-27B base), Q8_0 GGUF; served by llama.cpp + the
+          official startlux_decision package (/v1/systemone) - NOT a vLLM model;
+          judge tasks run as one forward pass with option-letter readout, no generation
   deberta-mnli:
     path: /mnt/data/deberta-v2-xlarge-mnli
     note: NLI entailment for original semantic entropy; readability self-checked at load
+  sent-emb-static-mrl:
+    path: /home/tim/Proj/resource/sent-emb-static-similarity-mrl
+    note: SeSE sentence embedder (official model tomaarsen/static-similarity-mrl-multilingual-v1,
+          downloaded via hf-mirror.com; huggingface.co unreachable on this network)
 
 datasets:
   triviaqa:
@@ -32,6 +57,92 @@ datasets:
     system_prompt: You are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences.
   synthetic:
     status: implemented
+  gsm8k:
+    status: implemented
+    path: /mnt/data/gsm8k/main/test-00000-of-00001.parquet
+    system_prompt: >-
+      You are a helpful AI assistant. Solve the math problem step by step,
+      keeping it brief. End your reply with the final numeric answer on its own
+      last line in the form: Final answer: <number>
+    sampling:               # math needs room for a short chain of thought
+      max_new_tokens: 192
+  math500:
+    status: implemented
+    path: /mnt/data/MATH-500/test.jsonl
+    system_prompt: >-
+      You are a helpful AI assistant. Solve the math problem step by step,
+      keeping it brief. End your reply with the final answer on its own last
+      line in the form: Final answer: <answer>
+    sampling:
+      max_new_tokens: 192
+  competition_math:
+    status: implemented
+    path: /mnt/data/datasets/competition_math_level_balanced_200.json
+    system_prompt: >-
+      You are a helpful AI assistant. Solve the math problem step by step,
+      keeping it brief. End your reply with the final numeric answer on its own
+      last line in the form: Final answer: <number>
+    sampling:
+      max_new_tokens: 192
+  competition_math_level5:
+    status: implemented
+    path: /mnt/data/datasets/competition_math_level_Level 5_200.json
+    system_prompt: >-
+      You are a helpful AI assistant. Solve the math problem step by step,
+      keeping it brief. End your reply with the final numeric answer on its own
+      last line in the form: Final answer: <number>
+    sampling:               # hard tier: same budget as other math sets
+      max_new_tokens: 192
+  mmlu_pro:
+    status: implemented
+    path: /mnt/data/datasets/MMLU_Pro_full.json
+    system_prompt: >-
+      You are a helpful AI assistant. Answer the multiple-choice question.
+      Think briefly if needed, then state your final choice as the last line in
+      the form: Final answer: <letter>
+    sampling:               # up to 10 options, reasoning-heavy
+      max_new_tokens: 192
+  hle_text:
+    status: implemented
+    path: /mnt/data/datasets/hle.json
+    system_prompt: >-
+      You are a helpful AI assistant. Answer the question concisely. State only
+      the short final answer.
+    sampling:
+      max_new_tokens: 64
+  gpqa_diamond:
+    status: implemented
+    path: /mnt/data/datasets/GPQA-Diamond.json
+    system_prompt: >-
+      You are a helpful AI assistant. Answer the multiple-choice question.
+      Think briefly if needed, then state your final choice as the last line in
+      the form: Final answer: <letter>
+    sampling:
+      max_new_tokens: 192
+  mmlu_college_chemistry:
+    status: implemented
+    path: /mnt/data/datasets/MMLU_College_Chemistry_full.json
+    system_prompt: >-
+      You are a helpful AI assistant. Answer the multiple-choice question.
+      Reply with the correct option letter only.
+    sampling:
+      max_new_tokens: 48
+  mmlu_college_computer_science:
+    status: implemented
+    path: /mnt/data/datasets/MMLU_College_Computer_Science_full.json
+    system_prompt: >-
+      You are a helpful AI assistant. Answer the multiple-choice question.
+      Reply with the correct option letter only.
+    sampling:
+      max_new_tokens: 48
+  mmlu_college_mathematics:
+    status: implemented
+    path: /mnt/data/datasets/MMLU_College_Math_full.json
+    system_prompt: >-
+      You are a helpful AI assistant. Answer the multiple-choice question.
+      Reply with the correct option letter only.
+    sampling:
+      max_new_tokens: 48
   squad:
     status: blocked:raw-json-not-mounted
     raw_json: ""            # fill local dev-v2.0.json path to enable the implemented adapter
@@ -40,6 +151,13 @@ datasets:
     raw_json: ""
   nq:
     status: blocked:no-local-file
+  hle:
+    status: blocked:multimodal-items
+    note: full hle.json includes image items; use the text-only exactMatch subset
+          via the implemented hle_text adapter instead
+  livebench:
+    status: blocked:not-factual-qa
+    note: coding-only instruction set; no ground-truth short answers for hallucination labeling
 
 num_samples: 8
 dataset: synthetic
@@ -70,15 +188,53 @@ methods:
 reppl_b:
   max_units: 4               # J budget for intervention replays (K*(1+J) replays)
 
-judge:
-  prompt_version: judge-yesno-v1
+sese:                        # SeSE (official port; GPT-4o answer enhancement skipped - no key)
+  tree_depth: 2
+  w_entail: 0.65
+  similarity_threshold: 0.3
+  nli_dtype: float16         # deberta-xlarge must share the GPU with the vLLM runner
+  nli_device: cuda:0
+  emb_device: cpu            # static embeddings are cheap; keep GPU for the engine
 
-# Judge provider registry (DESIGN.md section 7.5). Local judge is the implemented path;
-# remote providers are registered but blocked without keys/services.
+d_score:
+  tau: 10.0                  # singular-value relative tolerance (sigma_1/sigma_i <= tau)
+
+rauq:                        # official defaults (rauq.py); transformers reference env only
+  alpha: 0.2
+  head: max                  # dynamic per-sequence head selection
+  token_aggregation: meanmin
+  aggregation: mean
+  # layers: null             # default = middle third (range(n//3, ceil(2n/3)+1))
+
+reppl_ab:
+  nominate_by: r             # A-side criterion for top-J nomination: r (instability) | mu
+
+judge:
+  prompt_version: judge-yesno-v2   # v2: reference (ground-truth) aware
+  provider: local_self             # selected judge provider (see judge_providers)
+  reasoning_effort: low            # gpt-oss judge only
+  max_chars:                       # guard the 4096 judge window against long inputs
+    context: 4000
+    answer: 1500
+    gold: 800
+
+# Judge provider registry (DESIGN.md section 7.5). Local judges are the implemented
+# path; remote providers are registered but blocked without keys/services.
 judge_providers:
   local_self:
-    adapter: local           # same model as target; implemented
+    adapter: local        # same model as target; implemented
     status: implemented
+  gpt_oss_20b:
+    adapter: local        # separate local judge model, time-shared on the GPU
+    model: gpt-oss-20b    # key into models registry
+    reasoning: final      # prompt directly into the final channel (Yes/No + label likelihood)
+    status: implemented
+    backend_cfg:          # overrides backend_cfg for the judge engine only
+      gpu_memory_utilization: 0.80
+      max_model_len: 4096
+      enforce_eager: true
+      dtype: bfloat16
+      seed: 42
   api_llm:
     adapter: llm_api
     protocol: openai_chat_compatible
@@ -95,8 +251,22 @@ judge_providers:
   startlux_local:
     adapter: systemone
     base_url: http://127.0.0.1:8090
-    model: startlux-models/StartLux-Decision-4B
-    status: blocked:service-not-deployed
+    model: startlux-decision-27b   # provenance key into models registry
+    correct_option: correct
+    hallucinated_option: hallucinated
+    status: blocked:llama.cpp-binary-download-unreachable
+    note: adapter (reppl2/judges/systemone.py) + service script implemented and unit-tested;
+          blocked because llama.cpp CUDA binaries cannot be downloaded (github release CDN
+          unreachable, mirrors stall). Resume via scripts/setup/startlux_service.sh once
+          llama-server is in place; set status back to implemented after verify-judge passes.
+    service:                       # managed by scripts/setup/startlux_service.sh
+      model_dir: /mnt/data/StartLux-Decision-27B-Q8_0-GGUF
+      llama_binary: /home/tim/Proj/resource/llama.cpp/llama-server
+      llama_port: 8081
+      port: 8090
+      ctx: 16384
+      parallel: 4
+      wait_ready_s: 600
   open20b_local:
     adapter: llm_api
     protocol: openai_chat_compatible

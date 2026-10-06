@@ -152,9 +152,35 @@ class TransformersBackend(InferenceBackend):
         dt = time.time() - t0
         last = out.hidden_states[-1][0].float()
         ctx_len = len(context_token_ids)
+        ctx_states = last[:ctx_len].cpu().numpy().astype(np.float32)
         states = last[ctx_len:].cpu().numpy().astype(np.float32)
-        if not np.isfinite(states).all():
+        if not np.isfinite(states).all() or not np.isfinite(ctx_states).all():
             raise BackendError("non-finite values in last hidden states")
         if float(np.abs(states).sum()) == 0.0:
             raise BackendError("all-zero pooled states guard triggered")
-        return {"hidden": states, "dtype": "float32", "time_s": dt}
+        return {"hidden": states, "hidden_context": ctx_states,
+                "dtype": "float32", "time_s": dt}
+
+    def replay_attention(self, context_token_ids, output_token_ids):
+        """Reference-environment signal for attention-based baselines (RAUQ).
+
+        One forward pass over [context, output] with output_attentions; returns
+        (n_layers, n_heads, T_total, T_total) float32 attention weights. Requires
+        attn_implementation="eager" (set in backend_cfg). The native vLLM path
+        does NOT provide this - capability errors there are expected and honest.
+        """
+        self.load()
+        full = list(context_token_ids) + list(output_token_ids)
+        input_ids = torch.tensor([full], device=self.device)
+        t0 = time.time()
+        with torch.no_grad():
+            out = self.model(input_ids=input_ids, output_attentions=True)
+        dt = time.time() - t0
+        att = torch.stack([a[0] for a in out.attentions]).float().cpu().numpy()
+        if not np.isfinite(att).all():
+            raise BackendError("non-finite values in attention weights")
+        if att.shape[-1] != len(full):
+            raise BackendError(
+                f"attention length {att.shape[-1]} != sequence length {len(full)}")
+        return {"attentions": att, "n_layers": int(att.shape[0]),
+                "n_heads": int(att.shape[1]), "dtype": "float32", "time_s": dt}

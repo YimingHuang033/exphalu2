@@ -22,4 +22,5 @@ methods:
   - length
 
 judge:
-  prompt_version: judge-yesno-v1
+  prompt_version: judge-yesno-v2
+  provider: gpt_oss_20b   # smoke covers the external-judge path end to end

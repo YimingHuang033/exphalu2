@@ -1,0 +1,37 @@
+{
+  "_config_hash_": "c77d46227cdd732f",
+  "judge_model": "qwen3_5_4b",
+  "backend": "transformers",
+  "prompt_version": "judge-yesno-v1",
+  "per_sample": [
+    {
+      "sample_id": "synthetic-000",
+      "judge_name": "transformers-local",
+      "hard_verdict": 0,
+      "continuous_score": 0.00192673490152439,
+      "score_type": "label_likelihood",
+      "raw_output": "Yes",
+      "coverage": "ok",
+      "reason": "",
+      "prompt_version": "judge-yesno-v1",
+      "model_revision": "",
+      "timing_s": 12.341283798217773
+    },
+    {
+      "sample_id": "synthetic-001",
+      "judge_name": "transformers-local",
+      "hard_verdict": 0,
+      "continuous_score": 0.0028009274125868023,
+      "score_type": "label_likelihood",
+      "raw_output": "Yes",
+      "coverage": "ok",
+      "reason": "",
+      "prompt_version": "judge-yesno-v1",
+      "model_revision": "",
+      "timing_s": 0.11818885803222656
+    }
+  ],
+  "timing": {
+    "total_s": 12.472983360290527
+  }
+}

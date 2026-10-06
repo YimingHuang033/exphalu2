@@ -1,0 +1,7 @@
+method,n_samples,n_invalid_scores,n_used,positive_rate,auroc,auprc,auroc_ci
+judge-continuous,2,0,2,0.0,,,"{'ci_low': nan, 'ci_high': nan, 'n_boot': 0}"
+length,2,0,2,0.0,,,"{'ci_low': nan, 'ci_high': nan, 'n_boot': 0}"
+lnpe,2,0,2,0.0,,,"{'ci_low': nan, 'ci_high': nan, 'n_boot': 0}"
+outer-perplexity,2,0,2,0.0,,,"{'ci_low': nan, 'ci_high': nan, 'n_boot': 0}"
+reppl-a,2,2,0,,,,"{'ci_low': nan, 'ci_high': nan, 'n_boot': 0}"
+reppl-a-inner,2,2,0,,,,"{'ci_low': nan, 'ci_high': nan, 'n_boot': 0}"

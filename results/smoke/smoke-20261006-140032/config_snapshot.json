@@ -1,0 +1,262 @@
+{
+  "model": "qwen3_5_4b",
+  "backend": "vllm",
+  "backend_cfg": {
+    "gpu_memory_utilization": 0.85,
+    "max_model_len": 4096,
+    "enforce_eager": true,
+    "dtype": "bfloat16",
+    "seed": 42,
+    "env": {
+      "VLLM_USE_FLASHINFER_SAMPLER": "0"
+    }
+  },
+  "models": {
+    "qwen3_5_4b": {
+      "path": "/home/tim/Proj/resource/Qwen3.5-4B",
+      "note": "primary validation model; /mnt/data copy is on a disk with bad sectors"
+    },
+    "qwen2_5_0_5b": {
+      "path": "/mnt/data/Qwen2.5-0.5B-Instruct"
+    },
+    "qwen2_5_1_5b": {
+      "path": "/mnt/data/Qwen2.5-1.5B-Instruct"
+    },
+    "qwen2_5_7b": {
+      "path": "/mnt/data/Qwen2.5-7B-Instruct",
+      "note": "shard readability spot-checked 2026-10-06 (multi-offset dd)"
+    },
+    "qwen3_1_7b": {
+      "path": "/mnt/data/Qwen3-1.7B",
+      "note": "shards fully re-read 2026-10-06, no I/O error"
+    },
+    "qwen3_4b": {
+      "path": "/mnt/data/Qwen3-4B",
+      "note": "BLOCKED on this machine - shard 1 re-confirmed unreadable 2026-10-06 (I/O error)"
+    },
+    "qwen3_8b": {
+      "path": "/mnt/data/Qwen3-8B",
+      "note": "shard readability spot-checked 2026-10-06 (multi-offset dd)"
+    },
+    "gpt-oss-20b": {
+      "path": "/mnt/data/gpt-oss-20b",
+      "note": "external judge model (mxfp4 MoE); shards fully re-read 2026-10-06, no I/O error"
+    },
+    "deberta-mnli": {
+      "path": "/mnt/data/deberta-v2-xlarge-mnli",
+      "note": "NLI entailment for original semantic entropy; readability self-checked at load"
+    },
+    "sent-emb-static-mrl": {
+      "path": "/home/tim/Proj/resource/sent-emb-static-similarity-mrl",
+      "note": "SeSE sentence embedder (official model tomaarsen/static-similarity-mrl-multilingual-v1, downloaded via hf-mirror.com; huggingface.co unreachable on this network)"
+    }
+  },
+  "datasets": {
+    "triviaqa": {
+      "status": "implemented",
+      "path": "/mnt/data/trivia_qa/rc.nocontext/validation-00000-of-00001.parquet",
+      "system_prompt": "You are a helpful AI assistant. Answer the user's question concisely. Avoid full sentences."
+    },
+    "synthetic": {
+      "status": "implemented"
+    },
+    "gsm8k": {
+      "status": "implemented",
+      "path": "/mnt/data/gsm8k/main/test-00000-of-00001.parquet",
+      "system_prompt": "You are a helpful AI assistant. Solve the math problem step by step, keeping it brief. End your reply with the final numeric answer on its own last line in the form: Final answer: <number>",
+      "sampling": {
+        "max_new_tokens": 192
+      }
+    },
+    "math500": {
+      "status": "implemented",
+      "path": "/mnt/data/MATH-500/test.jsonl",
+      "system_prompt": "You are a helpful AI assistant. Solve the math problem step by step, keeping it brief. End your reply with the final answer on its own last line in the form: Final answer: <answer>",
+      "sampling": {
+        "max_new_tokens": 192
+      }
+    },
+    "competition_math": {
+      "status": "implemented",
+      "path": "/mnt/data/datasets/competition_math_level_balanced_200.json",
+      "system_prompt": "You are a helpful AI assistant. Solve the math problem step by step, keeping it brief. End your reply with the final numeric answer on its own last line in the form: Final answer: <number>",
+      "sampling": {
+        "max_new_tokens": 192
+      }
+    },
+    "gpqa_diamond": {
+      "status": "implemented",
+      "path": "/mnt/data/datasets/GPQA-Diamond.json",
+      "system_prompt": "You are a helpful AI assistant. Answer the multiple-choice question. Think briefly if needed, then state your final choice as the last line in the form: Final answer: <letter>",
+      "sampling": {
+        "max_new_tokens": 192
+      }
+    },
+    "mmlu_college_chemistry": {
+      "status": "implemented",
+      "path": "/mnt/data/datasets/MMLU_College_Chemistry_full.json",
+      "system_prompt": "You are a helpful AI assistant. Answer the multiple-choice question. Reply with the correct option letter only.",
+      "sampling": {
+        "max_new_tokens": 48
+      }
+    },
+    "mmlu_college_computer_science": {
+      "status": "implemented",
+      "path": "/mnt/data/datasets/MMLU_College_Computer_Science_full.json",
+      "system_prompt": "You are a helpful AI assistant. Answer the multiple-choice question. Reply with the correct option letter only.",
+      "sampling": {
+        "max_new_tokens": 48
+      }
+    },
+    "mmlu_college_mathematics": {
+      "status": "implemented",
+      "path": "/mnt/data/datasets/MMLU_College_Math_full.json",
+      "system_prompt": "You are a helpful AI assistant. Answer the multiple-choice question. Reply with the correct option letter only.",
+      "sampling": {
+        "max_new_tokens": 48
+      }
+    },
+    "squad": {
+      "status": "blocked:raw-json-not-mounted",
+      "raw_json": ""
+    },
+    "coqa": {
+      "status": "blocked:raw-json-not-mounted",
+      "raw_json": ""
+    },
+    "nq": {
+      "status": "blocked:no-local-file"
+    },
+    "hle": {
+      "status": "blocked:multimodal-and-near-zero-accuracy",
+      "note": "hle.json has embedded images and answers far beyond small open models; nearly all labels would be positive, making AUROC uninformative"
+    },
+    "livebench": {
+      "status": "blocked:not-factual-qa",
+      "note": "coding-only instruction set; no ground-truth short answers for hallucination labeling"
+    }
+  },
+  "num_samples": 4,
+  "dataset": "synthetic",
+  "sampling": {
+    "k": 3,
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "top_k": 10,
+    "max_new_tokens": 16,
+    "seed": 42
+  },
+  "aggregator": {
+    "tau": 0.01,
+    "alpha": 2.0,
+    "epsilon": 0.001,
+    "version": "agg-v1-ddof0"
+  },
+  "association_temperature": 1.0,
+  "methods": [
+    "reppl-a",
+    "reppl-b",
+    "outer-perplexity",
+    "lnpe",
+    "eigenscore-last",
+    "semantic-entropy-lexical",
+    "length"
+  ],
+  "reppl_b": {
+    "max_units": 4
+  },
+  "sese": {
+    "tree_depth": 2,
+    "w_entail": 0.65,
+    "similarity_threshold": 0.3,
+    "nli_dtype": "float16",
+    "nli_device": "cuda:0",
+    "emb_device": "cpu"
+  },
+  "d_score": {
+    "tau": 10.0
+  },
+  "rauq": {
+    "alpha": 0.2,
+    "head": "max",
+    "token_aggregation": "meanmin",
+    "aggregation": "mean"
+  },
+  "reppl_ab": {
+    "nominate_by": "r"
+  },
+  "judge": {
+    "prompt_version": "judge-yesno-v2",
+    "provider": "gpt_oss_20b",
+    "reasoning_effort": "low",
+    "max_chars": {
+      "context": 4000,
+      "answer": 1500,
+      "gold": 800
+    }
+  },
+  "judge_providers": {
+    "local_self": {
+      "adapter": "local",
+      "status": "implemented"
+    },
+    "gpt_oss_20b": {
+      "adapter": "local",
+      "model": "gpt-oss-20b",
+      "reasoning": "final",
+      "status": "implemented",
+      "backend_cfg": {
+        "gpu_memory_utilization": 0.8,
+        "max_model_len": 4096,
+        "enforce_eager": true,
+        "dtype": "bfloat16",
+        "seed": 42
+      }
+    },
+    "api_llm": {
+      "adapter": "llm_api",
+      "protocol": "openai_chat_compatible",
+      "base_url_env": "API_LLM_BASE_URL",
+      "api_key_env": "API_LLM_KEY",
+      "model_env": "API_LLM_MODEL",
+      "status": "blocked:no-key"
+    },
+    "jev_api": {
+      "adapter": "systemone",
+      "base_url_env": "JEV_BASE_URL",
+      "api_key_env": "JEV_API_KEY",
+      "model_env": "JEV_MODEL",
+      "status": "blocked:no-key"
+    },
+    "startlux_local": {
+      "adapter": "systemone",
+      "base_url": "http://127.0.0.1:8090",
+      "model": "startlux-models/StartLux-Decision-4B",
+      "status": "blocked:service-not-deployed"
+    },
+    "open20b_local": {
+      "adapter": "llm_api",
+      "protocol": "openai_chat_compatible",
+      "base_url": "http://127.0.0.1:8000/v1",
+      "model_env": "LOCAL_20B_MODEL",
+      "status": "blocked:service-not-deployed"
+    }
+  },
+  "interp": {
+    "save_intermediates": true
+  },
+  "_config_path_": "config/smoke.yaml",
+  "_config_hash_": "a99288460e55f284",
+  "_env_fingerprint_": {
+    "python": "3.11.14",
+    "vllm": "0.30.0",
+    "transformers": "5.18.0",
+    "numpy": "2.2.6",
+    "torch": "2.13.0+cu130",
+    "cuda_available": true,
+    "gpus": [
+      "NVIDIA GeForce RTX 4090",
+      "NVIDIA GeForce RTX 4090"
+    ]
+  }
+}
