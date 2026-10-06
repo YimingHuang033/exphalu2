@@ -54,7 +54,7 @@ def detect_one(backend, tokenizer, cfg, gen: Generation, ex, entailment_model=No
     sample_lens = [valid_len(s.token_ids, eos) for s in gen.samples]
 
     outer = None
-    if any(m in methods for m in ("reppl-a", "reppl-b", "outer-perplexity")):
+    if any(m in methods for m in ("reppl-a", "reppl-b", "reppl-ab")):
         outer = compute_outer(gen.greedy, sample_lens, eos_token_ids=eos)
 
     need_states = any(m in methods for m in ("reppl-a", "eigenscore-last", "reppl-b",
@@ -78,8 +78,9 @@ def detect_one(backend, tokenizer, cfg, gen: Generation, ex, entailment_model=No
                if replay_samples else None)
 
     if "outer-perplexity" in methods:
+        perplexity = outer_perplexity_risk(gen.greedy.token_logprobs, eos, gen.greedy.token_ids)
         out["methods"]["outer-perplexity"] = {
-            "risk": float(outer), "inner": None, "outer": None,
+            "risk": perplexity, "inner": None, "outer": None,
             "validity": "ok", "reason": ""}
     if "lnpe" in methods:
         try:

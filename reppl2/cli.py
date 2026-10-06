@@ -7,7 +7,7 @@ from pathlib import Path
 
 from .backends import build_backend
 from .cache import RunStore
-from .config_loader import load_config, require, ConfigError
+from .config_loader import load_config, require, ConfigError, config_hash
 from .logging_utils import setup_logging, results_dir
 from .orchestrate import (cmd_verify_backend, cmd_generate, cmd_detect, cmd_judge,
                           cmd_verify_judge, env_fingerprint, resolve_model, load_tokenizer)
@@ -22,12 +22,15 @@ def _prepare(args, category_default):
         cfg["model"] = args.model
     if getattr(args, "dataset", None):
         cfg["dataset"] = args.dataset
-    if getattr(args, "num_samples", None):
+    if getattr(args, "num_samples", None) is not None:
+        if args.num_samples < 0:
+            raise ConfigError("num_samples must be nonnegative (0 means all samples)")
         cfg["num_samples"] = args.num_samples
     if getattr(args, "backend", None):
         cfg["backend"] = args.backend
     if getattr(args, "judge_provider", None):
         cfg.setdefault("judge", {})["provider"] = args.judge_provider
+    cfg["_config_hash_"] = config_hash(cfg)
     if getattr(args, "run_id", None):
         run_id = args.run_id
     else:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 import time
 from typing import Optional
 
@@ -103,8 +104,7 @@ def compute_outer(greedy: SampledOutput, sample_lens: list[int],
     n = valid_len(ids, eos_token_ids)
     if n == 0:
         raise BackendError("greedy output has no non-special tokens")
-    tail = lps[n:]
-    if any(lp != lp for lp in tail):
+    if any(lp is None or not math.isfinite(lp) for lp in lps[:n]):
         raise BackendError("non-finite logprob inside counted region")
     nll_sum = -sum(lps[:n])
     if not sample_lens:

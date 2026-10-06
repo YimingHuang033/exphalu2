@@ -71,7 +71,7 @@ def eos_ids(tokenizer) -> set:
     ids = set()
     if tokenizer.eos_token:
         ids.update(tokenizer(tokenizer.eos_token, add_special_tokens=False)["input_ids"])
-    if getattr(tokenizer, "pad_token_id", None):
+    if getattr(tokenizer, "pad_token_id", None) is not None:
         ids.add(tokenizer.pad_token_id)
     return ids
 
@@ -156,6 +156,8 @@ def cmd_generate(cfg, logger, run_dir, force=False) -> dict:
     backend = build_backend(cfg.get("backend", "vllm"), model_path, cfg.get("backend_cfg", {}), logger)
     tokenizer = load_tokenizer(model_path)
     examples = iter_examples(cfg, logger)
+    # Invalidate before replacing dataset.json, including interrupted forced reruns.
+    store.invalidate("generation")
     save_json(run_dir / "dataset.json", {
         "dataset": require(cfg, "dataset"),
         "examples": [e.__dict__ for e in examples],

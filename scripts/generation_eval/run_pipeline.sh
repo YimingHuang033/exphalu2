@@ -32,7 +32,18 @@ fi
 PROVIDER=${JUDGE_PROVIDER:-$(python -c "
 import sys; sys.path.insert(0, '.')
 from reppl2.config_loader import load_config
-print(load_config('$CONFIG').get('judge', {}).get('provider', 'local_self'))")}
+print(load_config(sys.argv[1]).get('judge', {}).get('provider', 'local_self'))" "$CONFIG")}
+
+# A pre-existing service occupies the same GPUs and is not owned by this run.
+if [ "$PROVIDER" = "startlux_local" ] && bash scripts/setup/startlux_service.sh status; then
+  echo "StartLux is already running; stop it before this GPU pipeline."
+  exit 1
+fi
+
+python -m reppl2.cli verify-backend "${COMMON[@]}" || exit 1
+python -m reppl2.cli generate "${COMMON[@]}" || exit 1
+python -m reppl2.cli detect "${COMMON[@]}" || exit 1
+
 SVC_STARTED=0
 if [ "$PROVIDER" = "startlux_local" ]; then
   if bash scripts/setup/startlux_service.sh start; then SVC_STARTED=1; else
@@ -40,9 +51,6 @@ if [ "$PROVIDER" = "startlux_local" ]; then
   trap '[ "$SVC_STARTED" = "1" ] && bash scripts/setup/startlux_service.sh stop' EXIT
 fi
 
-python -m reppl2.cli verify-backend "${COMMON[@]}" || exit 1
-python -m reppl2.cli generate "${COMMON[@]}" || exit 1
-python -m reppl2.cli detect "${COMMON[@]}" || exit 1
 python -m reppl2.cli judge "${COMMON[@]}" || echo "judge failed; evaluation uses em_gold labels"
 python -m reppl2.cli evaluate "${COMMON[@]}" --label-source auto || exit 1
 

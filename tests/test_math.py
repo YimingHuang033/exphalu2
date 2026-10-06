@@ -146,5 +146,51 @@ def test_score_direction_contract():
     assert agg_hi.inner > agg_lo.inner
 
 
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf"), None])
+def test_outer_rejects_nonfinite_counted_logprobs(bad):
+    from reppl2.scoring import compute_outer
+    from reppl2.types import SampledOutput
+    from reppl2.backends.base import BackendError
+    with pytest.raises(BackendError, match="non-finite"):
+        compute_outer(SampledOutput("s", 0, [1, 0], "x", [bad, -1]), [2, 2], {0})
+
+
+def test_outer_ignores_excluded_eos_logprob():
+    from reppl2.scoring import compute_outer
+    from reppl2.types import SampledOutput
+    assert compute_outer(SampledOutput("s", 0, [1, 0], "x", [-2, float("nan")]), [2, 2], {0}) == 1
+
+
+def test_perplexity_baseline_uses_greedy_length_not_sample_length():
+    from reppl2.pipeline import detect_one
+    from reppl2.types import Generation, SampledOutput
+    greedy = SampledOutput("s", 0, [1, 2, 0], "answer", [-2, -4, -9])
+    samples = [SampledOutput("s", i, [3], "sample", [-1]) for i in (1, 2)]
+    gen = Generation("s", "prompt", [4], greedy, samples, {})
+    result = detect_one(None, None, {"methods": ["outer-perplexity"], "_eos_ids_": [0]}, gen, None)
+    assert result["methods"]["outer-perplexity"]["risk"] == 3.0
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), None])
+def test_probability_baselines_reject_nonfinite_logprobs(bad):
+    from reppl2.baselines.probability import outer_perplexity_risk, lnpe_risk
+    from reppl2.backends.base import BackendError
+    with pytest.raises(BackendError, match="non-finite"):
+        outer_perplexity_risk([bad], token_ids=[1])
+    with pytest.raises(BackendError, match="non-finite"):
+        lnpe_risk([[bad]], [[1]])
+
+
+def test_probability_baselines_reject_misaligned_logprobs():
+    from reppl2.baselines.probability import outer_perplexity_risk, lnpe_risk
+    from reppl2.backends.base import BackendError
+    with pytest.raises(BackendError, match="length mismatch"):
+        outer_perplexity_risk([-1], token_ids=[1, 2])
+    with pytest.raises(BackendError, match="length mismatch"):
+        lnpe_risk([[-1]], [[1, 2]])
+    with pytest.raises(BackendError, match="count mismatch"):
+        lnpe_risk([[-1]], [[1], [2]])
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-q"]))

@@ -54,6 +54,35 @@ bash scripts/vis/plot_eval.sh <category> <run_id>
 
 所有脚本自动写入 `log/<类别>/<脚本>-<时间戳>.log`；产物在 `results/<类别>/<run_id>/`。
 
+### 本地 CPU 回归与缓存兼容性（2026-10-06）
+
+没有服务器 conda 环境时，可使用独立测试环境（不安装 vLLM、不下载模型）：
+
+```bash
+bash scripts/setup/test_env.sh /path/to/python3
+# 后续复验无需重新安装；TEST_PYTHON 建议使用绝对路径
+TEST_PYTHON="$PWD/.venv/bin/python" bash scripts/smoke/unit_tests.sh
+```
+
+测试依赖在 `config/requirements-test.txt`；环境位于被 git 忽略的 `.venv/`。
+CPU 测试覆盖数学、适配器、缓存依赖、JSON 写入、备用标签和流水线阶段顺序，
+不能替代服务器上的 GPU 端到端冒烟与 judge 验收。
+
+本次修复会影响结果兼容性，已有实验需使用新 run_id 重新运行：
+
+- 缓存 hash 纳入 CLI 覆盖参数及缓存版本；各阶段必须使用相同配置和覆盖参数。
+  配置不符的上游文件会明确报错。重跑 generation 会清除 detection/judge/evaluation
+  等下游缓存，重跑 detection 或 judge 会清除旧评估与 CSV。
+- `outer-perplexity` 使用贪心答案有效 token 数归一化平均 NLL，
+  不再误用采样答案平均长度；RePPL 的 Outer 保留其采样长度归一化定义。
+- `em_gold` 改为保守的归一化精确匹配，支持独立行 `Answer:` / `Final answer:`，
+  保留数值正负号、分数和小数差异；`5` 不再匹配 `56`，缺失 gold 不再标成错误。
+  它仍是启发式备用标签，不具备语义等价或数学等价判定能力。
+- JSON 中非有限数写为 `null`，临时文件完整落盘后原子替换目标文件；
+  无有效分数或只有单类标签的评估记录为 `invalid` 并附原因。
+- StartLux 服务在 detect 完成后启动；若已有服务占用 GPU，流水线明确退出，
+  需先停止该服务。StartLux 共用双 GPU 时应使用顺序批处理，不能与其他 GPU 作业并行。
+
 ## 方法与分数方向
 
 - **RepPPL-A**（DESIGN §4）：末层输入-输出关联的跨采样波动 → Inner；乘法重标定 `risk=(Inner+ε)·Outer`。输入单元表示 u[j] 池化自 greedy 重放的 **prompt 侧**末层状态（2026-10-05 修复：后端现同时返回 `hidden_context`，且 unit char span 会先翻译到渲染后 prompt 坐标再做 token 对齐，span 翻译策略入 interp 记录）。

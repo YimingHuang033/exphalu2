@@ -11,7 +11,8 @@ from ..backends.base import BackendError
 
 def outer_perplexity_risk(greedy_logprobs: list[float], eos_token_ids: Optional[set] = None,
                           token_ids: Optional[list[int]] = None) -> float:
-    ids = token_ids or list(range(len(greedy_logprobs)))
+    if token_ids is not None and len(token_ids) != len(greedy_logprobs):
+        raise BackendError("greedy token/logprob length mismatch")
     n = len(greedy_logprobs)
     if eos_token_ids and token_ids:
         n = len(token_ids)
@@ -20,7 +21,7 @@ def outer_perplexity_risk(greedy_logprobs: list[float], eos_token_ids: Optional[
     if n == 0:
         raise BackendError("no counted tokens for perplexity")
     lps = greedy_logprobs[:n]
-    if any(lp != lp for lp in lps):
+    if any(lp is None or not math.isfinite(lp) for lp in lps):
         raise BackendError("non-finite logprob in greedy output")
     return float(-sum(lps) / n)
 
@@ -29,12 +30,16 @@ def lnpe_risk(samples_logprobs: list[list[float]], samples_token_ids: list[list[
               eos_token_ids: Optional[set] = None) -> float:
     """Length-normalized predictive entropy over sampled outputs (risk direction)."""
     vals = []
+    if len(samples_logprobs) != len(samples_token_ids):
+        raise BackendError("sample/logprob count mismatch")
     for lps, ids in zip(samples_logprobs, samples_token_ids):
+        if len(lps) != len(ids):
+            raise BackendError("sample token/logprob length mismatch")
         n = len(ids) if not eos_token_ids else _valid_len(ids, eos_token_ids)
         if n == 0:
             continue
         seq = lps[:n]
-        if any(lp != lp for lp in seq):
+        if any(lp is None or not math.isfinite(lp) for lp in seq):
             raise BackendError("non-finite logprob in sampled output")
         vals.append(-sum(seq) / n)
     if not vals:

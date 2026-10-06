@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import os
 import sys
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
@@ -41,10 +43,39 @@ def results_dir(category: str, run_id: str) -> Path:
 
 
 def save_json(path: Path, obj) -> Path:
+    path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as f:
-        json.dump(obj, f, indent=2, ensure_ascii=False, default=_default_json)
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent,
+                                         prefix=f".{path.name}.", delete=False) as f:
+            tmp_path = Path(f.name)
+            json.dump(_json_safe(obj), f, indent=2, ensure_ascii=False,
+                      allow_nan=False, default=_default_json)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, path)
+    finally:
+        if tmp_path is not None:
+            tmp_path.unlink(missing_ok=True)
     return path
+
+
+def _json_safe(obj):
+    """Convert non-finite Python/numpy values to standard JSON null recursively."""
+    import numpy as np
+
+    if isinstance(obj, np.ndarray):
+        return _json_safe(obj.tolist())
+    if isinstance(obj, np.generic):
+        return _json_safe(obj.item())
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_json_safe(v) for v in obj]
+    return obj
 
 
 def load_json(path: Path):

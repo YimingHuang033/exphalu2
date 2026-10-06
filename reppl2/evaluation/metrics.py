@@ -78,6 +78,9 @@ def evaluate_method(method: str, scores, labels) -> dict:
         "positive_rate": positive_rate(y),
         "auroc": auroc(s, y),
         "auprc": auprc(s, y),
+        "status": "invalid" if len(np.unique(y)) < 2 else "ok",
+        "reason": ("no valid scores" if len(y) == 0 else
+                   "only one label class" if len(np.unique(y)) < 2 else ""),
     }
     if len(y) >= 4:
         res["auroc_ci"] = bootstrap_ci(s, y)
@@ -91,4 +94,6 @@ def judge_agreement(judge_labels, detection_labels) -> dict:
     d = np.asarray(detection_labels)
     if len(j) != len(d):
         return {"agreement": float("nan"), "note": "length mismatch"}
+    if len(j) == 0:
+        return {"agreement": float("nan"), "n": 0, "note": "no shared labels"}
     return {"agreement": float((j == d).mean()), "n": int(len(j))}

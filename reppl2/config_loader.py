@@ -12,6 +12,8 @@ import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_DIR = PROJECT_ROOT / "config"
+# Bump when scoring/label semantics change so legacy artifacts cannot be reused.
+CACHE_VERSION = 2
 
 _ENV_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
 
@@ -73,7 +75,8 @@ def _deep_merge(base: dict, override: dict) -> dict:
 
 
 def config_hash(cfg: dict) -> str:
-    payload = json.dumps({k: v for k, v in cfg.items() if k.startswith("_") is False},
+    payload = json.dumps({"cache_version": CACHE_VERSION,
+                          "config": {k: v for k, v in cfg.items() if not k.startswith("_")}},
                          sort_keys=True, ensure_ascii=False, default=str)
     return hashlib.sha256(payload.encode()).hexdigest()[:16]
 

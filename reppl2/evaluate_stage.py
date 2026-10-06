@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import string as _string
+import re
 from pathlib import Path
 
 from .cache import RunStore
@@ -13,22 +14,30 @@ from .pipeline import load_generation
 
 def _norm(x) -> str:
     x = str(x).lower()
-    x = "".join(c for c in x if c not in _string.punctuation)
+    # Keep numeric signs, decimal points and fractions distinct.
+    x = x.strip().rstrip(".!?")
+    x = "".join(c for c in x if c not in _string.punctuation or c in "-+./")
     return " ".join(x.split())
 
 
 def labels_from_gold(examples: dict, generations: list) -> dict:
-    """Exact/substring match label: 1 = wrong answer (hallucination-ish). label_source=em_gold.
+    """Conservative normalized exact match: 1 = wrong answer, label_source=em_gold.
 
     Accepts Example dataclass instances or plain dicts (as stored in dataset.json).
     """
     labels = {}
     for g in generations:
         ex = examples.get(g["sample_id"])
-        golds_raw = ex.get("gold_answers", []) if isinstance(ex, dict) else (ex.gold_answers or [])
-        golds = [_norm(a) for a in golds_raw if a]
-        pred = _norm(load_generation(g).greedy.text.split("\n")[0])
-        ok = any(pred and (pred == gl or pred in gl or gl in pred) for gl in golds)
+        if ex is None:
+            continue
+        golds_raw = (ex.get("gold_answers") or []) if isinstance(ex, dict) else (ex.gold_answers or [])
+        golds = [v for a in golds_raw if a is not None and (v := _norm(a))]
+        if not golds:
+            continue
+        answer = load_generation(g).greedy.text.strip()
+        explicit = re.findall(r"^\s*(?:final answer|answer)\s*:\s*(.+)$", answer, re.I | re.M)
+        pred = _norm(explicit[-1] if explicit else answer.split("\n")[0])
+        ok = bool(pred) and pred in golds
         labels[g["sample_id"]] = 0 if ok else 1
     return labels
 
@@ -71,7 +80,7 @@ def cmd_evaluate(cfg, logger, run_dir, label_source="auto") -> dict:
     logger.info(f"[eval] labels: n={len(ids)}, positives={n_pos} ({n_pos/len(ids):.1%}), "
                 f"source={label_used}")
 
-    method_scores = {}
+    method_scores = {m: {} for m in det.get("methods_requested", [])}
     for r in det["per_sample"]:
         for m, v in r["methods"].items():
             if not isinstance(v, dict):
@@ -103,8 +112,8 @@ def cmd_evaluate(cfg, logger, run_dir, label_source="auto") -> dict:
         "n_positive": n_pos,
         "per_method": summary,
         "judge_agreement_vs_em": (judge_agreement(
-            [judge_labels.get(s) for s in ids if judge_labels.get(s) is not None],
-            [em_labels.get(s) for s in ids if judge_labels.get(s) is not None])
+            [judge_labels[s] for s in ids if s in judge_labels and s in em_labels],
+            [em_labels[s] for s in ids if s in judge_labels and s in em_labels])
             if judge_labels else None),
         "eval_csv": str(csv_path),
     }

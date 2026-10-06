@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 from .logging_utils import load_json, save_json
+from .config_loader import ConfigError
 
 
 def content_hash(obj) -> str:
@@ -22,6 +23,11 @@ class RunStore:
     """
 
     STAGES = ("config_snapshot", "generation", "trajectory", "detection", "judge", "evaluation", "interp")
+    DEPENDENTS = {
+        "generation": ("trajectory", "detection", "judge", "evaluation", "interp"),
+        "detection": ("evaluation", "interp"),
+        "judge": ("evaluation",),
+    }
 
     def __init__(self, run_dir: Path, config_hash: str):
         self.run_dir = Path(run_dir)
@@ -43,13 +49,24 @@ class RunStore:
             data = load_json(p)
         except Exception:
             return False
-        return data.get("_config_hash_") == self.config_hash
+        return isinstance(data, dict) and data.get("_config_hash_") == self.config_hash
+
+    def invalidate(self, stage: str, include_self: bool = True) -> None:
+        stages = ((stage,) if include_self else ()) + self.DEPENDENTS.get(stage, ())
+        for name in stages:
+            self.path(name).unlink(missing_ok=True)
+        if "evaluation" in stages:
+            (self.run_dir / "eval.csv").unlink(missing_ok=True)
 
     def save_stage(self, stage: str, payload: dict) -> Path:
-        return save_json(self.path(stage), {"_config_hash_": self.config_hash, **payload})
+        self.invalidate(stage, include_self=False)
+        return save_json(self.path(stage), {**payload, "_config_hash_": self.config_hash})
 
     def load_stage(self, stage: str) -> dict:
-        return load_json(self.path(stage))
+        data = load_json(self.path(stage))
+        if not isinstance(data, dict) or data.get("_config_hash_") != self.config_hash:
+            raise ConfigError(f"{stage} stage config mismatch; rerun upstream stages with the same options")
+        return data
 
     def snapshot_config(self, cfg: dict, extra_env: Optional[dict] = None) -> Path:
         snap = {k: v for k, v in cfg.items()}
