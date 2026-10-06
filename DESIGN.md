@@ -442,6 +442,76 @@ P0 优先落地；P1 不能因实现困难被自动删掉。正式主表必须�
 
 主版本逐步出分，轨迹聚合先用预先固定的 max 与 top-q；同时记录修复事件，不把后续正确修复简单当作仍在传播的错误。依赖图和复杂传播权重作为后续扩展，不在首轮引入过多自由参数。
 
+### 9.4 新增短上下文数据集候选与下载入口（2026-10-06 核实）
+
+目标：为 Qwen2.5–Qwen3.5、**总参数量小于 10B** 的被测模型寻找自然错误比例约 40%–60% 的任务，优先短 QA、函数级代码、有限工具集和短对话。以下是服务器开发者的下载/接入清单，**全部为 `planned`，本轮未下载完整数据、未完成适配、未在本项目模型上实测**。链接优先采用作者仓库、官方 Hugging Face 数据仓库和原始评测结果。
+
+**先区分两个目标。** `1 - accuracy/pass@1` 是答题或任务错误率，不自动等于幻觉率；BFCL 总分还是跨类别汇总指标，其补数不能当作逐步工具幻觉率。若需要真正的 40%–60% 幻觉率，必须按 §9.5 的独立幻觉标注再校准。不能承诺同一份题在 0.5B、7B、9B，或 thinking/non-thinking 两种模式下均落入该区间。
+
+#### 9.4.1 首批下载：有接近目标区间的公开分数
+
+**A. SuperGPQA：QA 首选，特别适合 Qwen3.5-4B/9B。**
+
+- 下载：[官方数据 `m-a-p/SuperGPQA`](https://huggingface.co/datasets/m-a-p/SuperGPQA)；[官方评测实现](https://github.com/SuperGPQA/SuperGPQA)。26,529 道题；HF split 名为 `train`，但这里用作评测题池，不据此当训练集。字段为 `uuid/question/options/answer/answer_letter/discipline/field/subfield/difficulty/is_calculation`。
+- 难度证据：Qwen 官方报告 4B/9B 的准确率分别为 **52.9% / 58.2%**，相应答题错误率 **47.1% / 41.8%**。这是原评测协议下的分数，不是下述短输入、关闭思考变体的保证。[Qwen 官方模型卡](https://huggingface.co/Qwen/Qwen3.5-9B#benchmark-results)
+- 接入建议：保留题干及全部选项，按 `difficulty`、学科分层；初选完整渲染输入 ≤1,024 tokens 的题。用 `answer_letter` 严格判选项，不把答案、解析放进 prompt。支持 4–10 个选项，不能把解析器写死成 A–D。若去掉选项改成开放 QA，另命名变体并重新判分、校准。数据许可为 ODC-BY，部分来源题还需保留原来源许可/归属。
+
+**B. BigCodeBench-Full：Qwen2.5-7B 的函数级编程首选。**
+
+- 下载：[官方数据 `bigcode/bigcodebench`](https://huggingface.co/datasets/bigcode/bigcodebench)；[代码及本地执行说明](https://github.com/bigcode-project/bigcodebench)。全量 1,140 题；`complete_prompt` 与 `instruct_prompt` 是两种输入设置，`canonical_solution/test/entry_point` 是答案及判分资源。仓库在本次核查时已归档，需固定数据 revision 和执行环境。
+- 难度证据：官方结果中 **Qwen2.5-7B-Instruct Complete 46.1%**，对应失败率 **53.9%**；Instruct 37.6%，失败率 62.4%，略超目标。可选的 **Qwen2.5-Coder-7B-Instruct** 为 Complete 48.8%、Instruct 40.4%，但它必须作为单独被测模型登记，不可冒充通用 Qwen2.5-7B。[官方结果数据，第二页](https://huggingface.co/datasets/bigcode/bigcodebench-results/viewer/default/train?p=1)
+- 接入建议：先用 Full/Complete，完整输入预算 ≤2,048 tokens；不要首轮就选 Hard。只向模型提供对应 prompt，评测端执行隐藏测试；库/函数不存在、伪造参数与普通算法错误分别标注。缺库、环境错误记 `blocked`，不能当模型失败。代码在隔离环境中执行；复用官方依赖和 evaluator，不用 yes/no LLM judge 替代测试。
+
+**C. LiveCodeBench：Qwen3.5-4B 的编程候选，也可扩展两轮修复。**
+
+- 下载：[官方 `livecodebench/code_generation_lite`](https://huggingface.co/datasets/livecodebench/code_generation_lite)；[官方 runner / self-repair](https://github.com/LiveCodeBench/LiveCodeBench)。仓库说明 `release_v6` 是累计到 2025-04 的 1,055 题；需要同时冻结版本、题目日期窗口和 ID 清单，不能只写“v6”或用会变化的 `release_latest`。
+- 难度证据：Qwen3.5-4B 的官方 **LiveCodeBench v6 为 55.8%**，分数补数 **44.2%**；9B 为 65.6%，已更容易。模型卡未在该表列出全部日期窗口/生成细节，因此不声称累计 1,055 题直接复现该数。[Qwen 官方模型卡](https://huggingface.co/Qwen/Qwen3.5-9B#benchmark-results)
+- 接入建议：按题目自带难度、日期分层，先保留完整题干/公开例子 ≤2,048 tokens 的题；`lite` 是裁减测试用例，不是缩短 prompt。先测一次生成，再可做“生成→公开测试反馈→一次修复”的单独两轮变体，隐藏测试始终只在最终评估端使用。官方数据带加载脚本，按固定 runner 的依赖加载或审阅后读取原始 JSONL，不盲目依赖新版 `datasets` 自动加载。下载体积与上下文长度是两回事。
+
+**D. BFCL v4 中的短工具调用子集：agentic 首选。**
+
+- 下载/执行优先用 [Gorilla 官方仓库](https://github.com/ShishirPatil/gorilla)，其中 `berkeley-function-call-leaderboard/` 含数据和 checker；[当前 README](https://raw.githubusercontent.com/ShishirPatil/gorilla/main/berkeley-function-call-leaderboard/README.md)、[类别清单](https://raw.githubusercontent.com/ShishirPatil/gorilla/main/berkeley-function-call-leaderboard/TEST_CATEGORIES.md)。[官方 HF 镜像](https://huggingface.co/datasets/gorilla-llm/Berkeley-Function-Calling-Leaderboard) 的说明仍停留在 V3，不应凭镜像名称认定拿到了 V4；其 `.json` 文件按行存 JSON，官方明确不建议直接用 `load_dataset`。
+- 难度证据：Qwen3.5-4B 的 **BFCL-V4 总分 50.3**，9B 为 66.1，只支持“值得先导测试”的判断；**没有证据证明短子集或幻觉子集也有 49.7% 错误率**。[Qwen 官方模型卡](https://huggingface.co/Qwen/Qwen3.5-9B#benchmark-results)
+- 接入建议：先 `multiple/parallel/parallel_multiple/irrelevance`，再 `multi_turn_base/multi_turn_miss_func/multi_turn_miss_param`；排除 `multi_turn_long_context`，首轮不接需要外部搜索的 agentic 类别。工具 schema 加全部可见历史以 ≤4,096 tokens 为上限，优先 ≤2,048 的样本。使用官方 AST/state checker，并分开记录不存在工具、捏造参数、该澄清却猜测、错误执行顺序和解析失败。缺函数/参数时正确澄清或拒绝调用不是幻觉。锁定同一 commit 的数据、函数文档、模拟环境和答案，不能只下载题目 JSON。
+
+**E. MultiChallenge：短多轮对话候选，须分开“幻觉”与“指令失败”。**
+
+- 下载：[官方 `ScaleAI/MultiChallenge`](https://huggingface.co/datasets/ScaleAI/MultiChallenge)；[字段/加载说明](https://huggingface.co/datasets/ScaleAI/MultiChallenge/blob/main/README.md)；[官方评测介绍](https://labs.scale.com/leaderboard/multichallenge)。当前公开 HF 版本为 **266** 条 `test` 数据，不能沿用其他版本的 273 条计数。
+- 难度证据：Qwen3.5-4B/9B 官方分数 **49.0 / 54.5**，相应未通过比例参考值 **51.0% / 45.5%**。短历史子集、当前公开版本与官方原测试的等价性尚未核实。[Qwen 官方模型卡](https://huggingface.co/Qwen/Qwen3.5-9B#benchmark-results)
+- 接入建议：优先 `INFERENCE_MEMORY/SELF_COHERENCE`；过滤 `conversation` 总消息数 ≤7 且完整输入 ≤2,048 tokens，保留原历史，不截断成“失忆题”。在已有历史末尾生成当前模型自己的目标回复；这不是该模型自生成的完整对话轨迹。兼容 `conversation` 的消息列表或平行 `role/content` 数组表示；`target_question/pass_criteria` 是 **judge 的评分问题和标准**，不得作为用户新问题/可见答案注入模型。纯格式/字数约束违规另报 `instruction_failure`，不作为事实幻觉；短子集数量不足时只做探索性结果。
+
+#### 9.4.2 第二批：更贴近事实幻觉或极短输入，但需先导实测
+
+**F. PopQA：用实体热度调整难度的短事实 QA。** [作者数据 `akariasai/PopQA`](https://huggingface.co/datasets/akariasai/PopQA) 约 14k 条，包含 `question/possible_answers/s_pop/prop/subj_id` 等信息。用问题作输入、完整别名集合作答案；`possible_answers` 若存为 JSON 字符串需先解析。优先完整输入 ≤512 tokens，按 `s_pop` 分位数和关系类型分层：小模型从热门实体开始，强模型增加长尾比例。**本轮未找到可直接移用到目标设置的 40%–60% 官方结果**；热度分层是校准手段，不是已验证结论。按实体分组划分，避免同一实体跨 dev/test；拒答和别名漏收需单独审核。
+
+**G. TruthfulQA-generation：诱发常见错误信念的短回答。** [作者仓库及 `TruthfulQA.csv`](https://github.com/sylinrl/TruthfulQA)；[原论文](https://arxiv.org/abs/2109.07958)。原版为 817 题，后续修订删除/修改了部分题，服务器须记录实际 revision 和行数。只给问题，要求 1–2 句；参考正确/错误答案及来源交给评测端。优先 ≤512 tokens，按主题校准。选择 **generation**，不能用 MC2 概率质量分数的补数声称幻觉率；正确纠正错误前提与“不知道”分开记。当前 Qwen 的生成式幻觉率未在本轮核实，且存在旧题污染/时效问题，作为补充而非唯一主集。
+
+**H. CRUXEval-I/O：极短代码推理对照。** [作者数据 `cruxeval-org/cruxeval`](https://huggingface.co/datasets/cruxeval-org/cruxeval)；[官方仓库与 `data/cruxeval.jsonl`](https://github.com/facebookresearch/cruxeval)。800 个短 Python 函数，HF 展示的代码字段长度为 30–278 字符，适合 ≤512-token 输入预算；I 为反推输入、O 为预测输出，分开评估。字段 `id/code/input/output`，隐藏目标字段；用官方执行语义判分，特别是 I 任务不能只做字符串匹配，因为有效输入可能不唯一。目标 Qwen 的 40%–60% 失败率待测；这是代码推理错误对照，不是完整程序生成或 agentic benchmark。
+
+**扩展候选 ToolHop，暂不列首批。** [作者数据/工具实现](https://huggingface.co/datasets/bytedance-research/ToolHop)、[论文](https://arxiv.org/abs/2501.02506)提供 995 个多跳查询和 3,912 个关联工具。原论文最强 GPT-4o 的准确率也仅 49.04%，不能据此推断小 Qwen 能达到 50%。只有 BFCL 短子集不够时，再尝试按工具数/依赖深度筛选并实际测量上下文；工具文档、执行代码和答案必须一起下载，不能把它当普通 QA 文件。
+
+#### 9.4.3 下载与接入顺序
+
+服务器先下载 **SuperGPQA、BigCodeBench、BFCL**：分别覆盖短 QA、函数级程序、短工具调用；再补 **LiveCodeBench、MultiChallenge**，最后用 **PopQA/TruthfulQA/CRUXEval** 调整难度和扩充事实幻觉/短输入覆盖。对 Qwen2.5-7B 优先 BigCodeBench-Complete；对 Qwen3.5-4B 优先前述有分数依据的四类；Qwen3-4B/8B 与更小尺寸均需单独 pilot，不能照搬相邻型号。
+
+- HF 条目按给出的完整 `repo_id` 下载，下载时冻结 commit SHA；普通 Parquet/JSON 数据可离线转换，BFCL 用其专用行式 JSON，LiveCodeBench 用固定版本加载器。不要把 HF 的 `main` 当永久版本号。
+- 原始数据、参考解、隐藏测试、工具模拟器分目录保存到 `config/` 指定的资源路径，均不入本项目 git；下载/转换入口放 `scripts/setup/`，日志进 `log/setup/`。本节没有创建这些脚本，也不表示现有 CLI 已支持这些名字。
+- 每份 manifest 保存 `source_url/repo_id/revision/license/sha256/source_split/source_id`；同时保存过滤规则、过滤前后数量、实际 tokenizer revision、输入长度 p50/p95/max 和丢弃原因。保留官方 LICENSE；上游代码许可不能自动替代题目数据许可。
+- 当前 `types.Example` / `render_prompt` 主要是单轮 question/context 模式。BFCL/MultiChallenge 接入前需新增保留 `messages/tools/tool_call_id/trajectory_id/step_id/visible_history_cutoff` 的消息与轨迹适配；不得把所有角色拼成一段普通用户文本后声称复现原多轮设置。新增代码执行 evaluator 与工具 checker，不把隐藏测试或执行结果提前给 RePPL 检测器。
+
+### 9.5 将自然错误/幻觉比例校准到 40%–60% 的实施协议
+
+**长度预算是本项目提出的筛选条件，不是对数据集平均 token 长度的实测声明。** 按每个被测模型的实际 chat template 渲染后计数，包括 system、工具 schema、历史与已有代码。建议闭卷事实 QA/CRUXEval ≤512，选项 QA ≤1,024，代码 ≤2,048，多轮优先 ≤2,048、上限 4,096 tokens；跨模型主比较取满足所有模型预算的共同题目集合。超长题直接标记并排除，不删除关键条件/选项/历史来凑短。
+
+1. **先锁模型与推理模式。** 记录完整 model ID、revision、dtype/量化、工具解析器、`enable_thinking`、采样及输出预算。当前 `render_prompt` 对名字含 qwen3 的模型会关闭 thinking；官方分数不能当作这个模式的复现结果。greedy 目标答案、用于 RePPL 的 K 个采样和官方 pass@k 是不同对象。不能靠提高温度、极短输出上限或故意破坏工具模板制造约 50% 错误。
+2. **先分数据，再选难度。** 在每个候选集按原问题/实体/完整轨迹分组，用固定 seed 划分不重叠 calibration 与 test；大数据集每个“模型×模式×任务”先约 200 条 calibration，MultiChallenge 等小集合使用较小 pilot 并披露不确定性。只根据 calibration 调整公开难度字段、实体热度或类别混合；不得看测试集回答后保留恰好一半错题。跨模型主表保留共同测试集；模型专属难度集另表。
+3. **保留双标签与无效状态。** `y_task_error` 来自选项 gold、执行测试或官方任务 checker；`y_hallucination` 针对错误事实、与可见证据矛盾、捏造工具/API/参数或虚构执行成功单独标注。仅测试不通过、格式错误、指令遗忘不能自动设 `y_hallucination=1`；未审核则为 `null/unverified`。judge 只能给辅助标签，使用 gold/工具状态/版本化 API 文档及人工抽查复核。拒答另记 `abstained`，运行失败/超时/输出截断另记状态，禁止混成幻觉。
+4. **报告两个分母。** 同时报告全部有效样本上的幻觉比例，以及作出可判定断言样本中的条件幻觉率；拒答率、未判定率、截断率与覆盖率一起报告。调到 40%–60% 的具体指标先在配置中写明。若需要短输出，可先试 QA 128、工具调用 256、代码 1,024、多轮最终回答 512 个生成 tokens；输出截断偏多时先调整预算/题型，不能把截断计为“自然幻觉”。thinking 模式需单独预算及报告思考 tokens。
+5. **冻结后验收。** calibration 上目标比例 0.4–0.6，附 Wilson 95% CI；200 个独立样本、比例约 0.5 时区间粗略为 0.43–0.57，不能据此保证 test 同比例。冻结题型混合、筛选 manifest、prompt、标签规约再一次性跑 test。实际超出区间就如实报告，不在 test 上反复调比例。低幻觉率任务仍可报告检测结果，不为平衡类别而注入错误。
+6. **agentic 的统计单位另报。** 调用前、返回解读、最终回答按 §9.3 分开；轨迹中至少一次幻觉的比例与逐步幻觉率分别报告。先 pilot 最多 4 个工具调用/assistant 决策步骤的短任务，触及预算记 `budget_exceeded` 而非完成失败或幻觉；额外采样仅用于检测，不能让不同候选调用相互污染工具状态。bootstrap 按完整轨迹分组，避免把相关步骤当独立样本。
+
+验收产物：每个模型/模式/任务分别交付原始及保留样本数、输入/输出长度、自然任务错误率、实际幻觉率、拒答/无效比例、标注一致性与置信区间。**本轮交付的是已核查的下载入口和实验计划，不是已经达成 40%–60% 幻觉率的实验结果。**
+
 ## 10. 工程目录与任务拆分
 
 以下均为拟建文件，不表示当前已存在：
