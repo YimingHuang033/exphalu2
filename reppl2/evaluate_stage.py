@@ -10,6 +10,7 @@ from .config_loader import ConfigError
 from .evaluation.metrics import evaluate_method, judge_agreement
 from .logging_utils import load_json, save_json
 from .pipeline import load_generation
+from .scoring import split_think
 
 
 def _norm(x) -> str:
@@ -20,10 +21,17 @@ def _norm(x) -> str:
     return " ".join(x.split())
 
 
-def labels_from_gold(examples: dict, generations: list) -> dict:
+def labels_from_gold(examples: dict, generations: list,
+                     thinking_on: bool = False,
+                     require_pattern: str = "") -> dict:
     """Conservative normalized exact match: 1 = wrong answer, label_source=em_gold.
 
     Accepts Example dataclass instances or plain dicts (as stored in dataset.json).
+    With thinking enabled, truncated thinks (no </think> in the output) carry no
+    judgeable answer and are excluded honestly rather than auto-labelled wrong.
+    With a dataset require_pattern, outputs missing the instructed answer marker
+    (truncated reasoning or instruction non-compliance) are format errors and are
+    excluded the same way (DESIGN 9.5.3), never auto-labelled hallucination.
     """
     labels = {}
     for g in generations:
@@ -34,7 +42,12 @@ def labels_from_gold(examples: dict, generations: list) -> dict:
         golds = [v for a in golds_raw if a is not None and (v := _norm(a))]
         if not golds:
             continue
-        answer = load_generation(g).greedy.text.strip()
+        greedy_text = load_generation(g).greedy.text
+        if thinking_on and "</think>" not in greedy_text:
+            continue
+        answer = split_think(greedy_text)[1].strip()
+        if require_pattern and not re.search(require_pattern, answer, re.I):
+            continue
         explicit = re.findall(r"^\s*(?:final answer|answer)\s*:\s*(.+)$", answer, re.I | re.M)
         pred = _norm(explicit[-1] if explicit else answer.split("\n")[0])
         ok = bool(pred) and pred in golds
@@ -51,7 +64,12 @@ def cmd_evaluate(cfg, logger, run_dir, label_source="auto") -> dict:
     dataset_payload = load_json(run_dir / "dataset.json")
     ex_by_id = {e["sample_id"]: e for e in dataset_payload["examples"]}
 
-    em_labels = labels_from_gold(ex_by_id, gen_payload["generations"])
+    ds_name = str(dataset_payload.get("dataset") or "")
+    ds_cfg = (cfg.get("datasets") or {}).get(ds_name) or {}
+    em_labels = labels_from_gold(
+        ex_by_id, gen_payload["generations"],
+        thinking_on=bool((gen_payload.get("thinking") or {}).get("enabled", False)),
+        require_pattern=str(ds_cfg.get("require_pattern") or ""))
     judge_labels, judge_scores = {}, {}
     if (run_dir / "judge.json").exists():
         jp = store.load_stage("judge")

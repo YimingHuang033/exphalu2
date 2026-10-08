@@ -1,0 +1,56 @@
+{
+ "name": "livecodebench",
+ "repo_id": "livecodebench/code_generation_lite",
+ "repo_type": "dataset",
+ "revision_sha": "0fe84c3912ea0c4d4a78037083943e8f0c4dd505",
+ "license": "cc",
+ "source_url": "https://huggingface.co/datasets/livecodebench/code_generation_lite/tree/0fe84c3912ea0c4d4a78037083943e8f0c4dd505",
+ "endpoint": "https://hf-mirror.com",
+ "design_section": "9.4",
+ "downloaded_at": "2026-10-06T14:37:06.565899+00:00",
+ "local_dir": "/mnt/data/LiveCodeBench",
+ "n_files": 10,
+ "total_bytes": 4486788102,
+ "files": [
+  {
+   "path": ".gitattributes",
+   "size": 2594
+  },
+  {
+   "path": "README.md",
+   "size": 3390
+  },
+  {
+   "path": "code_generation_lite.py",
+   "size": 5013
+  },
+  {
+   "path": "images/lcb.png",
+   "size": 782284
+  },
+  {
+   "path": "test.jsonl",
+   "size": 1252609773
+  },
+  {
+   "path": "test2.jsonl",
+   "size": 713377060
+  },
+  {
+   "path": "test3.jsonl",
+   "size": 623360766
+  },
+  {
+   "path": "test4.jsonl",
+   "size": 1204644685
+  },
+  {
+   "path": "test5.jsonl",
+   "size": 557699297
+  },
+  {
+   "path": "test6.jsonl",
+   "size": 134303240
+  }
+ ]
+}

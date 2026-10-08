@@ -1,0 +1,28 @@
+{
+ "name": "supergpqa",
+ "repo_id": "m-a-p/SuperGPQA",
+ "repo_type": "dataset",
+ "revision_sha": "4430d4458112c7d4497fdcf94d7cc223313d6acf",
+ "license": "odc-by",
+ "source_url": "https://huggingface.co/datasets/m-a-p/SuperGPQA/tree/4430d4458112c7d4497fdcf94d7cc223313d6acf",
+ "endpoint": "https://hf-mirror.com",
+ "design_section": "9.4",
+ "downloaded_at": "2026-10-06T14:10:29.285117+00:00",
+ "local_dir": "/mnt/data/SuperGPQA",
+ "n_files": 3,
+ "total_bytes": 23964083,
+ "files": [
+  {
+   "path": ".gitattributes",
+   "size": 2517
+  },
+  {
+   "path": "README.md",
+   "size": 4442
+  },
+  {
+   "path": "SuperGPQA-all.jsonl",
+   "size": 23957124
+  }
+ ]
+}

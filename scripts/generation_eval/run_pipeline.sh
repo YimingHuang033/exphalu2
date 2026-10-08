@@ -6,7 +6,9 @@ CATEGORY="generation_eval"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 mkdir -p "$ROOT/log/$CATEGORY" "$ROOT/results/$CATEGORY"
 TS=$(date +%Y%m%d-%H%M%S)
-LOG="$ROOT/log/$CATEGORY/run_pipeline-$TS.log"
+RUN_ID=${RUN_ID_OVERRIDE:-"geneval-$TS"}
+# log named after the run_id (cron monitor locates runs by run_pipeline-<run_id>.log)
+LOG="$ROOT/log/$CATEGORY/run_pipeline-$RUN_ID.log"
 exec > >(tee -a "$LOG") 2>&1
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate tim
@@ -18,7 +20,6 @@ BACKEND=${3:-vllm}
 NSAMPLES=${4:-16}
 DATASET=${5:-}
 JUDGE_PROVIDER=${6:-}
-RUN_ID=${RUN_ID_OVERRIDE:-"geneval-$TS"}
 COMMON=(--config "$CONFIG" --category generation_eval --run-id "$RUN_ID" --model "$MODEL" --backend "$BACKEND" --num-samples "$NSAMPLES" --strict-env)
 if [ -n "$DATASET" ]; then
   COMMON+=(--dataset "$DATASET")

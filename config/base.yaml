@@ -18,6 +18,8 @@ models:
   qwen3_5_4b:
     path: /home/tim/Proj/resource/Qwen3.5-4B
     note: primary validation model; /mnt/data copy is on a disk with bad sectors
+    chat_template_kwargs:   # frozen default; reasoning runs override at run level
+      enable_thinking: false
   qwen2_5_0_5b:
     path: /mnt/data/Qwen2.5-0.5B-Instruct
   qwen2_5_1_5b:
@@ -28,12 +30,16 @@ models:
   qwen3_1_7b:
     path: /mnt/data/Qwen3-1.7B
     note: shards fully re-read 2026-10-06, no I/O error
+    chat_template_kwargs:
+      enable_thinking: false
   qwen3_4b:
     path: /mnt/data/Qwen3-4B
     note: BLOCKED on this machine - shard 1 re-confirmed unreadable 2026-10-06 (I/O error)
   qwen3_8b:
     path: /mnt/data/Qwen3-8B
     note: shard readability spot-checked 2026-10-06 (multi-offset dd)
+    chat_template_kwargs:
+      enable_thinking: false
   gpt-oss-20b:
     path: /mnt/data/gpt-oss-20b
     note: external judge model (mxfp4 MoE); shards fully re-read 2026-10-06, no I/O error
@@ -143,6 +149,76 @@ datasets:
       Reply with the correct option letter only.
     sampling:
       max_new_tokens: 48
+  supergpqa:
+    status: implemented
+    path: /mnt/data/SuperGPQA/SuperGPQA-all.jsonl
+    manifest: config/manifests/supergpqa.manifest.json
+    system_prompt: >-
+      You are a helpful AI assistant. Answer the multiple-choice question.
+      Think briefly if needed, then state your final choice as the last line in
+      the form: Final answer: <letter>
+    max_question_chars: 4096    # approximate <=1024-token input pre-filter (DESIGN 9.4.1.A)
+    n_select: 2000              # fixed-seed uniform subset over eligible rows (DESIGN 9.5.2)
+    select_seed: 42
+    # outputs missing this marker carry no parseable choice (truncated reasoning or
+    # instruction non-compliance): excluded from labels, never auto-labelled wrong
+    # (DESIGN 9.5.3/9.5.4). Evaluated samples may still be fewer than requested.
+    require_pattern: "final answer\\s*:"
+    sampling:                   # 4-10 options, graduate-level reasoning
+      max_new_tokens: 192
+  popqa:
+    status: implemented
+    path: /mnt/data/PopQA/test.tsv
+    manifest: config/manifests/popqa.manifest.json
+    system_prompt: >-
+      You are a helpful AI assistant. Answer the user's question concisely.
+      Avoid full sentences.
+    n_select: 2000              # fixed-seed uniform subset over eligible rows (DESIGN 9.5.2)
+    select_seed: 42
+    sampling:                   # short factual QA (DESIGN 9.5: QA 128 tokens)
+      max_new_tokens: 128
+  truthfulqa_gen:
+    status: implemented
+    path: /mnt/data/TruthfulQA/TruthfulQA.csv
+    system_prompt: >-
+      You are a helpful AI assistant. Answer the question in one or two short
+      sentences.
+    note: >
+      author GitHub CSV (revision recorded at download); generation task, only
+      the question is shown to the model, correct/incorrect answer sets stay on
+      the eval side (DESIGN 9.4.2.G)
+    sampling:
+      max_new_tokens: 128
+  cruxeval_output:
+    status: implemented
+    path: /mnt/data/CRUXEval/test.jsonl
+    manifest: config/manifests/cruxeval.manifest.json
+    system_prompt: >-
+      You are a helpful AI assistant. Predict the output of the Python function.
+      State only the returned value.
+    note: task O (output prediction) only; task I needs execution semantics for
+          fair judging and is not adapted (DESIGN 9.4.2.H)
+    sampling:
+      max_new_tokens: 128
+  bigcodebench:
+    status: blocked:needs-execution-evaluator
+    manifest: config/manifests/bigcodebench.manifest.json
+    note: data downloaded; adapter needs the sandboxed official test evaluator (DESIGN 9.4.1.B)
+  livecodebench:
+    status: blocked:needs-execution-evaluator
+    manifest: config/manifests/livecodebench.manifest.json
+    note: data downloaded (v1-v6 windows, revision frozen); adapter needs hidden-test
+          execution in a sandbox (DESIGN 9.4.1.C)
+  bfcl:
+    status: blocked:needs-trajectory-and-checker
+    manifest: config/manifests/bfcl_hf.manifest.json
+    note: v3 mirror data downloaded; adapter needs multi-turn message/tool trajectory
+          support and the official AST/state checker (DESIGN 9.4.1.D)
+  multichallenge:
+    status: blocked:needs-trajectory-support
+    manifest: config/manifests/multichallenge.manifest.json
+    note: data downloaded; adapter needs multi-turn conversation support, currently
+          single-turn only (DESIGN 9.4.1.E)
   squad:
     status: blocked:raw-json-not-mounted
     raw_json: ""            # fill local dev-v2.0.json path to enable the implemented adapter
@@ -208,6 +284,14 @@ rauq:                        # official defaults (rauq.py); transformers referen
 
 reppl_ab:
   nominate_by: r             # A-side criterion for top-J nomination: r (instability) | mu
+
+thinking:                    # reasoning-model outputs (Qwen3.x <think>...</think>)
+  answer_view: post-think    # text-semantic methods (SE family / SeSE) and the judge
+                             # see the answer after the LAST </think>; token/statistical
+                             # methods (outer, lnpe, length, eigenscore, d-score,
+                             # reppl-a/b) keep the full think+answer output
+                             # truncated thinks (no </think>) are excluded honestly,
+                             # never scored as natural hallucination (DESIGN 9.5.4)
 
 judge:
   prompt_version: judge-yesno-v2   # v2: reference (ground-truth) aware

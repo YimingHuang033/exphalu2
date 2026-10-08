@@ -125,6 +125,43 @@ def test_missing_gold_is_unlabeled(examples):
     assert labels_from_gold(examples, [generation("answer")]) == {}
 
 
+def test_require_pattern_labels_matching_answers():
+    gen = generation("work\nFinal answer: B")
+    labels = labels_from_gold({"s": {"gold_answers": ["A"]}}, [gen],
+                              require_pattern=r"final answer\s*:")
+    assert labels == {"s": 1}
+
+
+@pytest.mark.parametrize("answer", [
+    "primary cementite consists of",       # truncated mid-reasoning, no marker
+    "The correct choice is B.",            # free-form answer without the marker
+])
+def test_require_pattern_excludes_format_errors(answer):
+    # DESIGN 9.5.3: instruction non-compliance / truncation is a format error,
+    # never an automatic hallucination label
+    assert labels_from_gold({"s": {"gold_answers": ["A"]}}, [generation(answer)],
+                            require_pattern=r"final answer\s*:") == {}
+
+
+def test_require_pattern_case_insensitive():
+    gen = generation("FINAL ANSWER: A")
+    assert labels_from_gold({"s": {"gold_answers": ["A"]}}, [gen],
+                            require_pattern=r"final answer\s*:") == {"s": 0}
+
+
+def test_cmd_evaluate_applies_dataset_require_pattern(tmp_path):
+    store = RunStore(tmp_path, "hash")
+    store.save_stage("generation", {"generations": [generation("rambling without marker")]})
+    store.save_stage("detection", {"methods_requested": [], "per_sample": []})
+    save_json(tmp_path / "dataset.json", {
+        "dataset": "supergpqa",
+        "examples": [{"sample_id": "s", "gold_answers": ["A"]}]})
+    cfg = {"_config_hash_": "hash",
+           "datasets": {"supergpqa": {"require_pattern": r"final answer\s*:"}}}
+    with pytest.raises(ConfigError, match="no labeled samples"):
+        cmd_evaluate(cfg, logging.getLogger("test"), tmp_path, "em_gold")
+
+
 def test_failed_method_still_appears_in_evaluation(tmp_path):
     store = RunStore(tmp_path, "hash")
     store.save_stage("generation", {"generations": [generation("wrong")]})

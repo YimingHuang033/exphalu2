@@ -1,0 +1,224 @@
+{
+ "name": "bfcl_hf",
+ "repo_id": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",
+ "repo_type": "dataset",
+ "revision_sha": "61fc0608cfd831fcfbbaa676ebdfef0ed963eeda",
+ "license": "apache-2.0",
+ "source_url": "https://huggingface.co/datasets/gorilla-llm/Berkeley-Function-Calling-Leaderboard/tree/61fc0608cfd831fcfbbaa676ebdfef0ed963eeda",
+ "endpoint": "https://hf-mirror.com",
+ "design_section": "9.4",
+ "downloaded_at": "2026-10-06T14:10:58.267188+00:00",
+ "local_dir": "/mnt/data/BFCL-hf",
+ "n_files": 52,
+ "total_bytes": 11720054,
+ "files": [
+  {
+   "path": ".gitattributes",
+   "size": 2307
+  },
+  {
+   "path": "BFCL_v3_chatable.json",
+   "size": 24980
+  },
+  {
+   "path": "BFCL_v3_exec_multiple.json",
+   "size": 82066
+  },
+  {
+   "path": "BFCL_v3_exec_parallel.json",
+   "size": 56281
+  },
+  {
+   "path": "BFCL_v3_exec_parallel_multiple.json",
+   "size": 73943
+  },
+  {
+   "path": "BFCL_v3_exec_simple.json",
+   "size": 87953
+  },
+  {
+   "path": "BFCL_v3_irrelevance.json",
+   "size": 160114
+  },
+  {
+   "path": "BFCL_v3_java.json",
+   "size": 85919
+  },
+  {
+   "path": "BFCL_v3_javascript.json",
+   "size": 46713
+  },
+  {
+   "path": "BFCL_v3_live_irrelevance.json",
+   "size": 2202715
+  },
+  {
+   "path": "BFCL_v3_live_multiple.json",
+   "size": 3891342
+  },
+  {
+   "path": "BFCL_v3_live_parallel.json",
+   "size": 15649
+  },
+  {
+   "path": "BFCL_v3_live_parallel_multiple.json",
+   "size": 82332
+  },
+  {
+   "path": "BFCL_v3_live_relevance.json",
+   "size": 54134
+  },
+  {
+   "path": "BFCL_v3_live_simple.json",
+   "size": 260128
+  },
+  {
+   "path": "BFCL_v3_multi_turn_base.json",
+   "size": 391058
+  },
+  {
+   "path": "BFCL_v3_multi_turn_composite.json",
+   "size": 404501
+  },
+  {
+   "path": "BFCL_v3_multi_turn_long_context.json",
+   "size": 392651
+  },
+  {
+   "path": "BFCL_v3_multi_turn_miss_func.json",
+   "size": 401840
+  },
+  {
+   "path": "BFCL_v3_multi_turn_miss_param.json",
+   "size": 403181
+  },
+  {
+   "path": "BFCL_v3_multiple.json",
+   "size": 316583
+  },
+  {
+   "path": "BFCL_v3_parallel.json",
+   "size": 172094
+  },
+  {
+   "path": "BFCL_v3_parallel_multiple.json",
+   "size": 347080
+  },
+  {
+   "path": "BFCL_v3_rest.json",
+   "size": 208186
+  },
+  {
+   "path": "BFCL_v3_simple.json",
+   "size": 280474
+  },
+  {
+   "path": "BFCL_v3_sql.json",
+   "size": 152641
+  },
+  {
+   "path": "README.md",
+   "size": 15282
+  },
+  {
+   "path": "eval.yaml",
+   "size": 736
+  },
+  {
+   "path": "multi_turn_func_doc/gorilla_file_system.json",
+   "size": 13951
+  },
+  {
+   "path": "multi_turn_func_doc/math_api.json",
+   "size": 9158
+  },
+  {
+   "path": "multi_turn_func_doc/message_api.json",
+   "size": 6097
+  },
+  {
+   "path": "multi_turn_func_doc/posting_api.json",
+   "size": 10573
+  },
+  {
+   "path": "multi_turn_func_doc/ticket_api.json",
+   "size": 6577
+  },
+  {
+   "path": "multi_turn_func_doc/trading_bot.json",
+   "size": 14075
+  },
+  {
+   "path": "multi_turn_func_doc/travel_booking.json",
+   "size": 15930
+  },
+  {
+   "path": "multi_turn_func_doc/vehicle_control.json",
+   "size": 17545
+  },
+  {
+   "path": "possible_answer/BFCL_v3_java.json",
+   "size": 15707
+  },
+  {
+   "path": "possible_answer/BFCL_v3_javascript.json",
+   "size": 7529
+  },
+  {
+   "path": "possible_answer/BFCL_v3_live_multiple.json",
+   "size": 199668
+  },
+  {
+   "path": "possible_answer/BFCL_v3_live_parallel.json",
+   "size": 4974
+  },
+  {
+   "path": "possible_answer/BFCL_v3_live_parallel_multiple.json",
+   "size": 7420
+  },
+  {
+   "path": "possible_answer/BFCL_v3_live_simple.json",
+   "size": 46971
+  },
+  {
+   "path": "possible_answer/BFCL_v3_multi_turn_base.json",
+   "size": 80428
+  },
+  {
+   "path": "possible_answer/BFCL_v3_multi_turn_composite.json",
+   "size": 115938
+  },
+  {
+   "path": "possible_answer/BFCL_v3_multi_turn_long_context.json",
+   "size": 116024
+  },
+  {
+   "path": "possible_answer/BFCL_v3_multi_turn_miss_func.json",
+   "size": 82136
+  },
+  {
+   "path": "possible_answer/BFCL_v3_multi_turn_miss_param.json",
+   "size": 82360
+  },
+  {
+   "path": "possible_answer/BFCL_v3_multiple.json",
+   "size": 32254
+  },
+  {
+   "path": "possible_answer/BFCL_v3_parallel.json",
+   "size": 65905
+  },
+  {
+   "path": "possible_answer/BFCL_v3_parallel_multiple.json",
+   "size": 74601
+  },
+  {
+   "path": "possible_answer/BFCL_v3_simple.json",
+   "size": 60809
+  },
+  {
+   "path": "possible_answer/BFCL_v3_sql.json",
+   "size": 20541
+  }
+ ]
+}

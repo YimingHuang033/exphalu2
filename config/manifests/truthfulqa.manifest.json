@@ -1,0 +1,19 @@
+{
+ "name": "truthfulqa",
+ "repo_id": "sylinrl/TruthfulQA (GitHub)",
+ "repo_type": "github",
+ "revision_sha": "d71c110897f5d31c5d7f309e7bc316c152f6f031",
+ "license": "Apache-2.0 (code); dataset per repo README",
+ "source_url": "https://github.com/sylinrl/TruthfulQA",
+ "design_section": "9.4.2.G",
+ "downloaded_at": "2026-10-06T14:31:23.295310+00:00",
+ "local_dir": "/mnt/data/TruthfulQA",
+ "sha256": "b8d8ef1e12f98b4f2a9f47abc9765da0640b182b6c5d9b92f0c1a1f2f1e02e5c",
+ "n_rows": 790,
+ "files": [
+  {
+   "path": "TruthfulQA.csv",
+   "size": 503550
+  }
+ ]
+}

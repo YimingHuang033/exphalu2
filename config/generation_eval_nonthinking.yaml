@@ -1,0 +1,56 @@
+# Generation + detection + judge + evaluation, NON-thinking mode, on the
+# DESIGN 9.4 short-context datasets (supergpqa / popqa).
+#
+# Why this config exists (2026-10-08): the thinking-mode runs at 1536/1024
+# budgets truncated inside the think trace for 97% (supergpqa, 1093/1123
+# greedy) and 82% (popqa, 1642/2000) of samples, leaving too few judgeable
+# answers and invalidating the text-semantic methods wholesale (K=5 sampled
+# outputs truncate even more often than greedy). DESIGN 9.5.4 requires
+# re-calibrating budget/task type instead of counting truncation as
+# hallucination; per user decision the formal runs use non-thinking mode
+# (registry default enable_thinking: false) with the budgets below.
+model: qwen3_5_4b
+num_samples: 2000
+backend: vllm
+
+judge:
+  provider: gpt_oss_20b   # external judge (gpt-oss-20b), reference-aware prompt v2
+
+sampling:
+  k: 5
+  temperature: 1.0
+  top_p: 0.95
+  top_k: 10
+  max_new_tokens: 128     # fallback; supergpqa/popqa override below
+  seed: 42
+
+datasets:
+  supergpqa:              # graduate-level MCQ; Qwen3.5-4B non-thinking ran past the
+                          # shared "think briefly" prompt budget (15/15 truncated at
+                          # 256 in the first calibration pass), so the run-level
+                          # system prompt demands a direct letter answer (DESIGN 9.5.4
+                          # allows adjusting task framing/budget instead of counting
+                          # truncation as hallucination)
+    system_prompt: >-
+      You are a helpful AI assistant. Answer the multiple-choice question.
+      Do not reason step by step and do not explain: answer directly with
+      only the final choice, as the last line in the form: Final answer: <letter>
+    sampling:
+      max_new_tokens: 128
+  popqa:                  # short factual QA (DESIGN 9.5: QA 128 tokens)
+    sampling:
+      max_new_tokens: 128
+
+methods:
+  - reppl-a
+  - reppl-b
+  - outer-perplexity
+  - lnpe
+  - eigenscore-last
+  - semantic-entropy-lexical
+  - length
+  - d-score-last
+  - sese
+  - semantic-energy
+  - reppl-b-rawq
+  - reppl-ab

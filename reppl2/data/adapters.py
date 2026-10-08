@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import csv
 import hashlib
 import json
+import random
 import re
 from pathlib import Path
 from typing import Iterator
@@ -13,7 +15,7 @@ IMPLEMENTED_DATASETS = [
     "triviaqa", "synthetic", "gsm8k", "math500", "competition_math",
     "competition_math_level5", "gpqa_diamond", "mmlu_college_chemistry",
     "mmlu_college_computer_science", "mmlu_college_mathematics", "mmlu_pro",
-    "hle_text",
+    "hle_text", "supergpqa", "popqa", "truthfulqa_gen", "cruxeval_output",
 ]
 
 DATASET_STATUS = {
@@ -29,11 +31,21 @@ DATASET_STATUS = {
     "mmlu_college_mathematics": "implemented",
     "mmlu_pro": "implemented",
     "hle_text": "implemented",
+    "supergpqa": "implemented",
+    "popqa": "implemented",
+    "truthfulqa_gen": "implemented",
+    "cruxeval_output": "implemented",
     "nq": "blocked:no-local-file",
     "squad": "blocked:raw-json-not-mounted",
     "coqa": "blocked:raw-json-not-mounted",
     "hle": "blocked:multimodal-items",
     "livebench": "blocked:not-factual-qa",
+    # DESIGN.md 9.4 candidates: downloaded to /mnt/data, adapters need infra the
+    # current single-turn pipeline does not have (recorded honestly, no substitute)
+    "bigcodebench": "blocked:needs-execution-evaluator",
+    "livecodebench": "blocked:needs-execution-evaluator",
+    "bfcl": "blocked:needs-trajectory-and-checker",
+    "multichallenge": "blocked:needs-trajectory-support",
 }
 
 MATH_SYSTEM_DEFAULT = (
@@ -48,6 +60,21 @@ MCQ_SYSTEM_DEFAULT = (
 
 def _short_hash(s: str, n: int = 8) -> str:
     return hashlib.sha256(s.encode()).hexdigest()[:n]
+
+
+def _select_indices(n_eligible: int, ds_cfg: dict, name: str) -> list[int] | None:
+    """Deterministic uniform subset selection over the eligible rows (DESIGN 9.5.2:
+    fixed-seed split before difficulty selection). n_select=0/None keeps all rows."""
+    n_select = ds_cfg.get("n_select")
+    if not n_select:
+        return None
+    n_select = int(n_select)
+    if n_select >= n_eligible:
+        return None
+    seed = int(ds_cfg.get("select_seed", 42))
+    rng = random.Random(seed)
+    idx = sorted(rng.sample(range(n_eligible), n_select))
+    return idx
 
 
 def _ds_cfg(cfg: dict, name: str) -> dict:
@@ -387,6 +414,216 @@ def iter_hle_text(cfg: dict, limit: int) -> Iterator[Example]:
             return
 
 
+def iter_supergpqa(cfg: dict, limit: int) -> Iterator[Example]:
+    """SuperGPQA (m-a-p/SuperGPQA, JSONL): 26,529 graduate-level MCQ across 285
+    disciplines with 4-10 options (DESIGN.md 9.4.1.A). Gold is the stored
+    answer_letter validated against the rendered option count; the parser is
+    not hardwired to A-D. Optional max_question_chars is an approximate
+    input-length pre-filter, and n_select takes a fixed-seed uniform subset
+    over the eligible rows (DESIGN 9.5.2), both config-controlled.
+    """
+    ds_cfg = _ds_cfg(cfg, "supergpqa")
+    path = ds_cfg.get("path")
+    if not path:
+        raise ConfigError("datasets.supergpqa.path missing in config")
+    p = Path(path)
+    if not p.exists():
+        raise ConfigError(f"supergpqa: data file not found: {path}")
+    max_chars = ds_cfg.get("max_question_chars")
+    system = _system_prompt(cfg, "supergpqa", MCQ_SYSTEM_DEFAULT)
+    eligible = []
+    with open(p) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            row = json.loads(line)
+            choices = [str(c).strip() for c in row.get("options") or []]
+            gold = str(row.get("answer_letter", "")).strip().upper()
+            q_text = str(row.get("question", "")).strip()
+            if len(choices) < 2 or not q_text:
+                continue
+            if not gold or gold not in "ABCDEFGHIJKL"[: len(choices)]:
+                continue
+            q = _render_mcq_question(q_text, choices)
+            if max_chars and len(q) > int(max_chars):
+                continue
+            eligible.append((row, q))
+    sel = _select_indices(len(eligible), ds_cfg, "supergpqa")
+    if sel is not None:
+        eligible = [eligible[i] for i in sel]
+    n = 0
+    for row, q in eligible:
+        gold = str(row.get("answer_letter", "")).strip().upper()
+        yield Example(
+            sample_id=f"supergpqa-{_short_hash(str(row.get('uuid', q)))}",
+            task="mcq",
+            question=q,
+            context="",
+            gold_answers=[gold],
+            system_prompt=system,
+            split="test",
+            meta={"dataset": "supergpqa", "discipline": row.get("discipline"),
+                  "field": row.get("field"), "subfield": row.get("subfield"),
+                  "difficulty": row.get("difficulty"),
+                  "is_calculation": row.get("is_calculation"),
+                  "n_options": len(row.get("options") or []),
+                  "n_select": ds_cfg.get("n_select"),
+                  "select_seed": ds_cfg.get("select_seed", 42)},
+        )
+        n += 1
+        if limit and n >= limit:
+            return
+
+
+def iter_popqa(cfg: dict, limit: int) -> Iterator[Example]:
+    """PopQA (akariasai/PopQA, TSV): entity-centric short factual QA; gold is the
+    full alias set (possible_answers stored as a stringified JSON list, parsed
+    here). s_pop is kept in meta for popularity stratification (DESIGN 9.4.2.F);
+    n_select takes a fixed-seed uniform subset over the eligible rows.
+    """
+    ds_cfg = _ds_cfg(cfg, "popqa")
+    path = ds_cfg.get("path")
+    if not path:
+        raise ConfigError("datasets.popqa.path missing in config")
+    p = Path(path)
+    if not p.exists():
+        raise ConfigError(f"popqa: data file not found: {path}")
+    system = _system_prompt(cfg, "popqa",
+                            "You are a helpful AI assistant. Answer the user's question "
+                            "concisely. Avoid full sentences.")
+    eligible = []
+    with open(p) as f:
+        for row in csv.DictReader(f, delimiter="\t"):
+            q = str(row.get("question", "")).strip()
+            if not q:
+                continue
+            raw = str(row.get("possible_answers", "")).strip()
+            try:
+                gold = [str(a) for a in json.loads(raw)]
+            except (json.JSONDecodeError, TypeError):
+                gold = [raw] if raw else []
+            gold = [g for g in gold if g]
+            if not gold:
+                continue
+            try:
+                s_pop = int(row.get("s_pop", ""))
+            except (TypeError, ValueError):
+                s_pop = None
+            eligible.append((row, q, gold, s_pop))
+    sel = _select_indices(len(eligible), ds_cfg, "popqa")
+    if sel is not None:
+        eligible = [eligible[i] for i in sel]
+    n = 0
+    for row, q, gold, s_pop in eligible:
+        yield Example(
+            sample_id=f"popqa-{_short_hash(str(row.get('id', q)))}",
+            task="open_qa",
+            question=q,
+            context="",
+            gold_answers=gold,
+            system_prompt=system,
+            split="test",
+            meta={"dataset": "popqa", "s_pop": s_pop, "prop": row.get("prop"),
+                  "subj": row.get("subj"), "subj_id": row.get("subj_id"),
+                  "n_select": ds_cfg.get("n_select"),
+                  "select_seed": ds_cfg.get("select_seed", 42)},
+        )
+        n += 1
+        if limit and n >= limit:
+            return
+
+
+def iter_truthfulqa_gen(cfg: dict, limit: int) -> Iterator[Example]:
+    """TruthfulQA generation task (sylinrl/TruthfulQA CSV, the repo's current
+    revision): adversarial questions that elicit common misconceptions. Only the
+    question is shown to the model (1-2 sentence answer); the correct/incorrect
+    answer sets stay on the eval side as judge references (DESIGN 9.4.2.G).
+    """
+    path = _ds_cfg(cfg, "truthfulqa_gen").get("path")
+    if not path:
+        raise ConfigError("datasets.truthfulqa_gen.path missing in config")
+    p = Path(path)
+    if not p.exists():
+        raise ConfigError(f"truthfulqa_gen: data file not found: {path}")
+    system = _system_prompt(cfg, "truthfulqa_gen",
+                            "You are a helpful AI assistant. Answer the question in one "
+                            "or two short sentences.")
+    n = 0
+    with open(p) as f:
+        for row in csv.DictReader(f):
+            q = str(row.get("Question", "")).strip()
+            best = str(row.get("Best Answer", "")).strip()
+            correct = [c.strip() for c in str(row.get("Correct Answers", "")).split(";")
+                       if c.strip()]
+            gold: list[str] = []
+            for g in [best] + correct:
+                if g and g not in gold:
+                    gold.append(g)
+            if not q or not gold:
+                continue
+            yield Example(
+                sample_id=f"tqa-{_short_hash(q)}",
+                task="open_qa_adversarial",
+                question=q,
+                context="",
+                gold_answers=gold,
+                system_prompt=system,
+                split="test",
+                meta={"dataset": "truthfulqa_gen", "category": row.get("Category"),
+                      "question_type": row.get("Type"), "source": row.get("Source")},
+            )
+            n += 1
+            if limit and n >= limit:
+                return
+
+
+def iter_cruxeval_output(cfg: dict, limit: int) -> Iterator[Example]:
+    """CRUXEval task O / output prediction (cruxeval-org/cruxeval, JSONL): short
+    Python functions, model predicts the returned value for a given input. Task I
+    (input inference) needs execution semantics for fair judging and is not
+    adapted here (DESIGN 9.4.2.H); gold is the stored output repr.
+    """
+    path = _ds_cfg(cfg, "cruxeval_output").get("path")
+    if not path:
+        raise ConfigError("datasets.cruxeval_output.path missing in config")
+    p = Path(path)
+    if not p.exists():
+        raise ConfigError(f"cruxeval_output: data file not found: {path}")
+    system = _system_prompt(cfg, "cruxeval_output",
+                            "You are a helpful AI assistant. Predict the output of the "
+                            "Python function. State only the returned value.")
+    n = 0
+    with open(p) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            row = json.loads(line)
+            code = str(row.get("code", "")).strip()
+            fn_input = str(row.get("input", "")).strip()
+            gold = str(row.get("output", "")).strip()
+            if not code or not gold or not fn_input:
+                continue
+            q = (f"What does the following Python function return when called with "
+                 f"the given input?\n\n```python\n{code}\n```\n\nInput:\n{fn_input}\n\n"
+                 f"State only the returned value.")
+            yield Example(
+                sample_id=f"cruxeval-{_short_hash(str(row.get('id', code + fn_input)))}",
+                task="code_reasoning",
+                question=q,
+                context="",
+                gold_answers=[gold],
+                system_prompt=system,
+                split="test",
+                meta={"dataset": "cruxeval_output", "task_variant": "output",
+                      "sample_key": row.get("id")},
+            )
+            n += 1
+            if limit and n >= limit:
+                return
+
+
 def iter_triviaqa(cfg: dict, limit: int) -> Iterator[Example]:
     path = cfg.get("datasets", {}).get("triviaqa", {}).get("path")
     if not path:
@@ -507,6 +744,10 @@ def get_dataset_iterator(name: str, cfg: dict, limit: int) -> Iterator[Example]:
         "mmlu_college_mathematics": iter_mmlu_college_mathematics,
         "mmlu_pro": iter_mmlu_pro,
         "hle_text": iter_hle_text,
+        "supergpqa": iter_supergpqa,
+        "popqa": iter_popqa,
+        "truthfulqa_gen": iter_truthfulqa_gen,
+        "cruxeval_output": iter_cruxeval_output,
     }
     if name in registry:
         return registry[name](cfg, limit)

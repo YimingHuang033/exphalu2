@@ -1,0 +1,28 @@
+{
+ "name": "cruxeval",
+ "repo_id": "cruxeval-org/cruxeval",
+ "repo_type": "dataset",
+ "revision_sha": "b96af0450242eb4da433032b90998f25588a5d0f",
+ "license": "mit",
+ "source_url": "https://huggingface.co/datasets/cruxeval-org/cruxeval/tree/b96af0450242eb4da433032b90998f25588a5d0f",
+ "endpoint": "https://hf-mirror.com",
+ "design_section": "9.4",
+ "downloaded_at": "2026-10-06T14:18:08.503904+00:00",
+ "local_dir": "/mnt/data/CRUXEval",
+ "n_files": 3,
+ "total_bytes": 191482,
+ "files": [
+  {
+   "path": ".gitattributes",
+   "size": 2307
+  },
+  {
+   "path": "README.md",
+   "size": 2302
+  },
+  {
+   "path": "test.jsonl",
+   "size": 186873
+  }
+ ]
+}

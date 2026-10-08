@@ -37,7 +37,15 @@ bash scripts/smoke/run_smoke_transformers.sh [model_key]
 bash scripts/generation_eval/run_pipeline.sh [config] [model_key] [backend] [num_samples] [dataset] [judge_provider]
 
 # 批量评测矩阵（模型 × 数据集，顺序执行，产 BATCH-<ts>-summary.csv）
+bash scripts/generation_eval/run_batch.sh [config] [backend] [n] [models_csv] [datasets_csv]
+
+# 一条命令：双卡 2000 条 reasoning 实验 + 8 小时 cron 定时 opencode 监控（可断开 SSH）
+bash scripts/generation_eval/launch_experiment_8h.sh [config] [model] [backend] [n] [ds_gpu0] [ds_gpu1] [hours]
+# 监控日志: log/generation_eval/cron-monitor.log；到期自动移除 crontab 条目，实验本身继续
 bash scripts/generation_eval/run_batch.sh [config] [backend] [num_samples] [models_csv] [datasets_csv] [judge_provider]
+
+# 单卡排队：等指定 GPU 的现有进程退出并释放显存后自动启动新 run（detached，可断 SSH）
+bash scripts/generation_eval/wait_gpu_then_launch.sh [gpu] [wait_pattern] [max_wait_s] [config] [model] [backend] [n] [dataset] [run_id]
 
 # judge provider 验收（固定 4 用例；默认 config 中的 provider）
 bash scripts/smoke/verify_judge.sh [config] [backend] [judge_provider]
@@ -53,6 +61,58 @@ bash scripts/vis/plot_eval.sh <category> <run_id>
 ```
 
 所有脚本自动写入 `log/<类别>/<脚本>-<时间戳>.log`；产物在 `results/<类别>/<run_id>/`。
+
+### 运行管理：断点续跑 / 停止 / 新跑（2026-10-08）
+
+流水线各阶段（generate→detect→judge→evaluate）产物落盘后可断点恢复：
+**同一 run_id + 同一 config + 同一 CLI 参数**重跑即自动跳过已完成阶段（缓存按
+config hash 匹配，config 改过必须换新 run_id）。断点是阶段级的——阶段中途被杀
+（如 generate 跑到一半）则该阶段重头跑；`--force` 强制重跑并清下游缓存。
+
+```bash
+cd /home/tim/Proj/exphalu2
+
+# ── 断点续跑（先确认旧进程已停；run_id 换成本次要续的）──────────────────
+# supergpqa / GPU0：
+CUDA_VISIBLE_DEVICES=0 RUN_ID_OVERRIDE=<run_id> \
+  setsid nohup bash scripts/generation_eval/run_pipeline.sh \
+  config/generation_eval_nonthinking.yaml qwen3_5_4b vllm 2000 supergpqa \
+  > /dev/null 2>&1 < /dev/null &
+# popqa / GPU1：同上，CUDA_VISIBLE_DEVICES=1 且末两参换 popqa
+
+# ── 停止 ──────────────────────────────────────────────────────────────
+# 只停监控（实验继续跑）：
+crontab -l | grep -v EXPHALU2-MONITOR | crontab -
+# 全停：监控 + GPU 排队 waiter + 所有实验进程：
+crontab -l | grep -v EXPHALU2-MONITOR | crontab -
+pkill -TERM -f wait_gpu_then_launch.sh
+pkill -TERM -f "run_pipeline.sh config/generation_eval"
+pkill -TERM -f "reppl2.cli"
+sleep 30 && nvidia-smi --query-gpu=index,memory.used --format=csv,noheader
+#   （引擎核心退出有延迟，等显存归零再跑新任务；backend 对此有内置重试）
+# 只停某个 run：查 PGID 后杀整组（bash/tee/python 同组）：
+ps -eo pid,pgid,cmd | grep "reppl2.cli\|run_pipeline.sh" | grep -v grep
+kill -TERM -- -<PGID>
+
+# ── 新跑 ──────────────────────────────────────────────────────────────
+# 双卡一条命令：自动生成新 run_id + 重写监控 control + 重装 cron（小时数末参）：
+bash scripts/generation_eval/launch_experiment_8h.sh \
+  [config] [model] [backend] [n] [ds_gpu0] [ds_gpu1] [monitor_hours]
+# 单卡直接跑（run_id 必须用新的；第 6 参 judge provider 可省略用 config 默认）：
+CUDA_VISIBLE_DEVICES=0 RUN_ID_OVERRIDE=<新run_id> \
+  setsid nohup bash scripts/generation_eval/run_pipeline.sh \
+  [config] [model] [backend] [n] [dataset] > /dev/null 2>&1 < /dev/null &
+# 单卡排队：GPU 被占时挂起等待，进程消失且显存释放后自动启动（detached）：
+setsid nohup bash scripts/generation_eval/wait_gpu_then_launch.sh \
+  [gpu] [等待消失的pgrep模式] [max_wait_s] [config] [model] [backend] \
+  [n] [dataset] [新run_id] > /dev/null 2>&1 &
+```
+
+注意：手动新跑（不经 `launch_experiment_8h.sh`）时换了 run_id，监控
+`log/generation_eval/cron-monitor.control` 里的 runs 列表会失配——需同步编辑
+control 文件，或直接用一条命令版。当前正式 run：`geneval-20261008-220609-g0`
+（supergpqa）/ `-g1`（popqa，GPU1 排队接力）；监控：`tail -n 40
+log/generation_eval/cron-monitor.log`。
 
 ### 本地 CPU 回归与缓存兼容性（2026-10-06）
 
@@ -90,7 +150,10 @@ CPU 测试覆盖数学、适配器、缓存依赖、JSON 写入、备用标签�
 - **baseline**：outer-perplexity、LNPE、eigenscore-last（末层变体，显式命名）、semantic-entropy（NLI 蕴含，需 deberta-mnli 可读）/ semantic-entropy-lexical（词面分组回退变体）、length（对照协变量）、**d-score-last**（D-Score 谱统计末层变体：σ₁/σᵢ≤τ 计数，τ=10 入 config）、**sese**（官方 SELGroup/SeSE @8d4c6c5 逐位移植：NLI 蕴含 0.65 + 句向量余弦 0.35 混合相似度聚类建图 → 编码树结构熵；官方 GPT-4o 答案增强因无 key 跳过并显式记录）。
 - **合同**：所有分数方向统一为"越大越可能幻觉"，不做测试集方向翻转；Inner 单独输出（`reppl-a-inner` / `reppl-b-inner`）以检验 H1 增量。
 - **Judge**：本地 LLM judge，**参考答案感知**（prompt v2 `judge-yesno-v2`：gold answers 作为 Reference 注入判题，按 ground-truth 定幻觉标签），硬 Yes/No + 固定标签 likelihood（Yes/No 首 token 归一）双分数。默认 provider `gpt_oss_20b`（外置 `gpt-oss-20b` mxfp4，经 vLLM 分时加载；harmony 格式直接注入 final channel，判词与标签 likelihood 同位置测得）；`local_self`（被测模型自判）保留可选。`JudgePair` 融合接口就位。远程 provider（API LLM / Jev / StartLux）登记于 config，无 key/服务，blocked。
-- **数据集**（ground-truth 幻觉评测，全部实现并实测）：基础层 triviaqa、gsm8k、math500、competition_math、gpqa_diamond、mmlu_college_{chemistry,computer_science,mathematics}（+ synthetic 冒烟）；**困难层**（诱导被测模型幻觉，2026-10-06）：mmlu_pro（10 选项推理 MCQ）、hle_text（HLE 纯文本 exactMatch 子集，图像题剔除）、competition_math_level5（Level-5 竞赛数学）。数据集可带 `sampling` 覆盖（math/困难层 192 tokens）。hle 完整集（多模态）、livebench（非事实问答）显式 blocked。
+ - **数据集**（ground-truth 幻觉评测，全部实现并实测）：基础层 triviaqa、gsm8k、math500、competition_math、gpqa_diamond、mmlu_college_{chemistry,computer_science,mathematics}（+ synthetic 冒烟）；**困难层**（诱导被测模型幻觉，2026-10-06）：mmlu_pro（10 选项推理 MCQ）、hle_text（HLE 纯文本 exactMatch 子集，图像题剔除）、competition_math_level5（Level-5 竞赛数学）。数据集可带 `sampling` 覆盖（math/困难层 192 tokens）。hle 完整集（多模态）、livebench（非事实问答）显式 blocked。
+ - **DESIGN §9.4 短上下文候选**（2026-10-06 接入，manifest 入 `config/manifests/`）：**supergpqa**（m-a-p/SuperGPQA 26,529 题 MCQ，4–10 选项 letter 判分，`max_question_chars` 预筛 + `n_select: 2000` 固定种子抽样子集）、**popqa**（实体短事实 QA，`possible_answers` 别名全集判分，`s_pop` 入 meta 供热度分层，`n_select: 2000` 固定种子抽样）、**truthfulqa_gen**（生成任务，仅给问题，正确/错误答案集留在评测端作 judge 参考）、**cruxeval_output**（task O 输出预测；task I 需执行语义判分未适配）。四者均通过 8 样本端到端 pilot（Qwen2.5-0.5B + gpt-oss-20b judge）。**bigcodebench / livecodebench（需隐藏测试沙箱执行 evaluator）、bfcl / multichallenge（需多轮轨迹支持）** 按设计诚实登记 blocked，不下沉为替代实现。
+ - **Reasoning 模型适配（Qwen3.x thinking 模式）**：`chat_template_kwargs`（run 级 > models 注册表 > qwen3 名字默认关 thinking）控制被测模型思考模式（`config/generation_eval_reasoning.yaml`）。thinking 输出按 `</think>`（Qwen3.5 开标签在 prompt 内，Qwen3 在补全内）拆分：**judge 与 em_gold 判分只看 think 之后的答案**；文本语义方法（semantic-entropy 族 / SeSE / semantic-energy）用 post-think 答案视图（token 级切片对齐 logprobs）；token/统计方法（outer、lnpe、length、eigenscore、d-score、reppl-a/b）保留完整 think+answer 输出。**截断在 think 内（无 `</think>`）的样本不产生 judge 标签、不进 em_gold、语义方法整组 invalid**——按 DESIGN 9.5.4 如实排除，不计入自然幻觉；生成 payload 记录 `thinking.*` 与截断计数。**2026-10-08 实测（见已知问题 14）**：thinking 预算 1024/1536 下 greedy 截断 82-97%、采样全截断，正式 run 改非 thinking；thinking 端到端能力本身已验证（8 样本 pilot + 2000 条 popqa generate 完成），大规模使用前必须先跑 §9.5 calibration 定预算。
+ - **非 thinking 正式配置（2026-10-08）**：`config/generation_eval_nonthinking.yaml`（supergpqa@128 + 直答 system_prompt 覆盖、popqa@128）。calibration（64 条/数据集）：popqa judge 64/64 判定（53 正/11 负）、全部 15 方法行 status=ok、judge-continuous AUROC=1.0（`geneval-calib-20261008-201606-popqa`）；supergpqa 首轮 256 预算 15/15 截断 → 直答 prompt + `require_pattern` 格式排除后 53/64 判定（34 正/19 负，正例率 64%）、11 条格式排除如实记录、sese 等 15 方法全有效（`geneval-calib4-20261008-212538-sgpqa`）。吞吐：非 thinking popqa 生成 ~1s/条（thinking 为 ~75s/条），detect ~30s/条（语义方法真实运行的开销，与 10-06 已验收 run 一致）。正式 2000×2 双卡 run（`geneval-20261008-220609-g0`=supergpqa/GPU0、`-g1`=popqa/GPU1 排队接力）经 `wait_gpu_then_launch.sh` 分时启动，cron 监控 30h 窗。
 
 ## 配置
 
@@ -104,7 +167,7 @@ CPU 测试覆盖数学、适配器、缓存依赖、JSON 写入、备用标签�
 1. **`/mnt/data`（/dev/sda）磁盘坏道**：`Qwen3-4B/model-00001-of-00003.safetensors` 出现 I/O error（2026-10-06 复验 `dd` 全读仍可复现），该模型本机不可用；`gpt-oss-20b` 全部 shard 复读无 I/O error，`Qwen2.5-0.5B/1.5B/7B`、`Qwen3-1.7B/8B` 可读（7B/8B 多偏移抽读）。`Qwen3.5-4B` 使用 `/home/tim/Proj/resource` 副本。
 2. **huggingface.co 本网络不可达**：模型/数据下载需走 `HF_ENDPOINT=https://hf-mirror.com`（SeSE 句向量模型已按此下载到 `/home/tim/Proj/resource/sent-emb-static-similarity-mrl`）；GitHub/arXiv 可直连。
 3. **SGLang**：环境未安装，backend 显式报 `BackendError`（无静默回退）。
-4. **数据集**：SQuAD/CoQA 原始 JSON 在未挂载的外置盘，适配器已实现但 blocked（在 config 填路径即启用）；NQ 无本地文件。
+4. **数据集**：SQuAD/CoQA 原始 JSON 在未挂载的外置盘，适配器已实现但 blocked（在 config 填路径即启用）；NQ 无本地文件。DESIGN §9.4 的 bigcodebench/livecodebench/bfcl/multichallenge 数据已全部下载（manifest 入 `config/manifests/`，revision 冻结），适配需沙箱执行 evaluator 或多轮轨迹支持，显式 blocked。
 5. **P0/P1 强基线剩余项**（HAD/RAUQ/LAFaCT/LaaB/Semantic Energy；D-Score 原版最优层配置）：未实现，注册表状态 `planned`（`reppl2/baselines/registry.py`）。已实现：`d-score-last`（末层适配变体，显式命名）与 `sese`（官方移植，GPT-4o 增强跳过已记录），均带固定数组测试。
 6. **多轮工具调用轨迹**：适配器未接，`planned`。
 7. **J=1 退化**：单句无上下文的问题只有一个事实单元，跨单元 softmax 恒为 1，Inner≈0（risk 退化为 ε·Outer）。triviaqa 16 样本全部属于此情形（reppl-a/b 的 inner 无信息，其 AUROC 由 ε·Outer 驱动）；segmentation 已对单句问题做子句切分兜底，但 triviaqa 问题极少含子句标点。有 RAG 上下文的任务（squad 类）才能充分体现 A/B 的输入定位价值——数据挂载是下一步优先项。
@@ -114,6 +177,8 @@ CPU 测试覆盖数学、适配器、缓存依赖、JSON 写入、备用标签�
 11. **GPQA-Diamond 与小模型**：Qwen3-1.7B 在 16 条 GPQA-Diamond 上 0/16 正确（judge 依据 gold 判定），全正例标签使 AUROC 退化（无负例）；GPQA 适合较大被测模型或仅作 AUPRC/校准观察。原始数据中 1/198 条含乱序 remap 块，适配器已做剥离与 gold 字母映射（tests 覆盖）。
 12. **历史缺陷修复（2026-10-06）**：`load_entailment` 在 sese 与 semantic-energy 共享 NLI 实例分支引用了未绑定的局部 `torch`（"cannot access free variable"），detect 全样本 failed；已修复（函数级 import）。
 13. **StartLux-Decision-27B judge**：`/v1/systemone` 适配器（`reppl2/judges/systemone.py`，choice 二选项映射 → 统一 schema，choice 概率 → 连续分）与服务编排脚本（`scripts/setup/startlux_service.sh`，llama.cpp + 官方 startlux_decision.gguf_server）已实现并带单测（fake 服务）。**状态 `blocked:llama.cpp-binary-download-unreachable`**：本机需 llama.cpp ≥ b10454 CUDA 二进制，GitHub release CDN 不可达、镜像代理反复中断（llama-b11433 停在 42/153MB），按约定暂缓。恢复路径：下载 `llama-b11433-bin-ubuntu-cuda-13.4-x64.tar.gz` + `cudart-*.tar.gz` 解压至 `/home/tim/Proj/resource/llama.cpp/`（含 `llama-server`），`bash scripts/setup/startlux_service.sh start`，跑 `verify_judge.sh config/generation_eval.yaml vllm startlux_local`，通过后把 provider status 改回 implemented。
+14. **thinking 模式预算不可行（2026-10-08 实测，§9.5.4 应急触发）**：10-06 启动的 2000×2 thinking 实验（Qwen3.5-4B，`generation_eval_reasoning.yaml`）greedy 截断率 supergpqa@1536 = 97.3%（1093/1123，g0 已按用户决定停止，省 ~35h GPU）、popqa@1024 = 82.1%（1642/2000）；K=5 采样（temp=1.0）比 greedy 更长，语义方法（semantic-entropy-lexical / sese / semantic-energy）整组 invalid（g1 detect 前 856/856 全 None）。处置：g1 让其跑完作 thinking 参考数据（标签仅 ~18% 样本、语义组 invalid，如实记录）；正式 run 改非 thinking（`config/generation_eval_nonthinking.yaml`）。教训：**thinking 预算必须先跑 §9.5 calibration 再定**，采样截断率系统性高于 greedy。
+15. **非 thinking MCQ 格式缺口（2026-10-08 修复）**：supergpqa 非 thinking 下 Qwen3.5-4B 有 ~14% 输出无视"直接作答"指令、在预算内截断于推理中途——截断/无格式输出没有可判定的选择，送 judge 或 em_gold 回退（取首行）都会**伪造幻觉标签**（违反 DESIGN 9.5.3/9.5.4）。修复：数据集级 `require_pattern`（supergpqa = `final answer\s*:`），judge 阶段与 `labels_from_gold` 一致排除（coverage=`no_parseable_answer`，不产标签），被排除样本的 detector 分数仍计算但不进 eval；`tests/test_run_integrity.py` 5 项新用例。其他数据集可按需在 config 登记自己的 pattern（未登记则行为不变）。
 
 ## 已完成的验证记录（2026-10-04 / 2026-10-05）
 
@@ -144,6 +209,7 @@ CPU 测试覆盖数学、适配器、缓存依赖、JSON 写入、备用标签�
 | triviaqa 16 样本回归（参考感知 judge v2） | Qwen3-1.7B | vLLM 0.30.0 | ✅ 通过（geneval-20261006-135441） |
 | 冒烟全链回归（gpt-oss-20b judge provider 接入） | Qwen3.5-4B | vLLM 0.30.0 | ✅ 通过（smoke-20261006-140032） |
 | mmlu_pro 16 样本全链（困难层；judge 10 正例；reppl-b-inner AUROC=0.75） | Qwen2.5-1.5B | vLLM 0.30.0 | ✅ 通过（geneval-20261006-153826） |
+| §9.4 新数据集 4×8 样本全链 pilot（supergpqa/popqa/truthfulqa_gen/cruxeval_output；judge 正例 7/8、8/8、8/8、7/8——0.5B 在困难集上高幻觉率符合预期，正式比例校准按 DESIGN §9.5 用 200 条 calibration 分层执行；popqa 全正例 run 的 AUROC 如实记 invalid） | Qwen2.5-0.5B | vLLM 0.30.0 | ✅ 通过（geneval-20261006-223446/-223811/-224012/-224213） |
 | hle_text 16 样本全链（困难层；judge 15 正例；sese AUROC=0.80） | Qwen3-1.7B | vLLM 0.30.0 | ✅ 通过（geneval-20261006-154140） |
 | competition_math_level5 16 样本全链（困难层；judge 15 正例；reppl-b AUROC=0.867） | Qwen2.5-1.5B | vLLM 0.30.0 | ✅ 通过（geneval-20261006-154437） |
 

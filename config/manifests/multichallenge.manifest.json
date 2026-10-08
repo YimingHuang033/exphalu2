@@ -1,0 +1,28 @@
+{
+ "name": "multichallenge",
+ "repo_id": "ScaleAI/MultiChallenge",
+ "repo_type": "dataset",
+ "revision_sha": "670fd81f270314d0f8f82b34fcfe2187fd28f699",
+ "license": "cc-by-4.0",
+ "source_url": "https://huggingface.co/datasets/ScaleAI/MultiChallenge/tree/670fd81f270314d0f8f82b34fcfe2187fd28f699",
+ "endpoint": "https://hf-mirror.com",
+ "design_section": "9.4",
+ "downloaded_at": "2026-10-06T14:18:02.413709+00:00",
+ "local_dir": "/mnt/data/MultiChallenge",
+ "n_files": 3,
+ "total_bytes": 979927,
+ "files": [
+  {
+   "path": ".gitattributes",
+   "size": 2504
+  },
+  {
+   "path": "README.md",
+   "size": 2104
+  },
+  {
+   "path": "data/test-00000-of-00001.parquet",
+   "size": 975319
+  }
+ ]
+}

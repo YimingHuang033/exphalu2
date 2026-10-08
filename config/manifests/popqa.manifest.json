@@ -1,0 +1,28 @@
+{
+ "name": "popqa",
+ "repo_id": "akariasai/PopQA",
+ "repo_type": "dataset",
+ "revision_sha": "098765c79ea10a2cb19c828324e33281b8336ec0",
+ "license": null,
+ "source_url": "https://huggingface.co/datasets/akariasai/PopQA/tree/098765c79ea10a2cb19c828324e33281b8336ec0",
+ "endpoint": "https://hf-mirror.com",
+ "design_section": "9.4",
+ "downloaded_at": "2026-10-06T14:18:05.848856+00:00",
+ "local_dir": "/mnt/data/PopQA",
+ "n_files": 3,
+ "total_bytes": 5209152,
+ "files": [
+  {
+   "path": ".gitattributes",
+   "size": 2265
+  },
+  {
+   "path": "README.md",
+   "size": 1687
+  },
+  {
+   "path": "test.tsv",
+   "size": 5205200
+  }
+ ]
+}

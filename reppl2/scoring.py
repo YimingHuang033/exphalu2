@@ -8,8 +8,74 @@ from typing import Optional
 from .backends.base import InferenceBackend, BackendError
 from .types import Example, Generation, SampledOutput
 
+THINK_CLOSE = "</think>"
 
-def render_prompt(example: Example, tokenizer) -> tuple[str, list[int], str]:
+
+def default_chat_template_kwargs(tokenizer_name: str) -> dict:
+    """Legacy name-based default: Qwen3-family templates get thinking disabled so
+    short-answer budgets stay valid (DESIGN 9.5.1; behaviour frozen since 2026-10-05)."""
+    kwargs: dict = {}
+    if "qwen3" in str(tokenizer_name or "").lower():
+        kwargs["enable_thinking"] = False
+    return kwargs
+
+
+def resolve_chat_template_kwargs(cfg: dict, tokenizer) -> Optional[dict]:
+    """Chat-template kwargs for the TARGET model: run-level `chat_template_kwargs`
+    wins, then the model registry entry, else the name-based legacy default.
+    Returns None when no override exists (render_prompt applies the default)."""
+    run_level = cfg.get("chat_template_kwargs")
+    if isinstance(run_level, dict):
+        return dict(run_level)
+    model_key = cfg.get("model")
+    entry = (cfg.get("models") or {}).get(model_key) if model_key else None
+    if isinstance(entry, dict) and isinstance(entry.get("chat_template_kwargs"), dict):
+        return dict(entry["chat_template_kwargs"])
+    return None
+
+
+def split_think(text: str) -> tuple[str, str]:
+    """Split a reasoning-model output into (think_part, answer_part).
+
+    Qwen3 emits `<think>...</think>` inside the completion; Qwen3.5 puts the
+    opening `<think>` in the generation prompt, so the completion only contains
+    `</think>`. Splits at the LAST closing marker (consistent with the token-level
+    boundary in answer_token_start). Without the closing marker there is no answer
+    boundary: the whole text is returned as answer (thinking disabled or plain
+    model); callers that know thinking was enabled treat this as a truncated think.
+    """
+    s = str(text or "")
+    pos = s.rfind(THINK_CLOSE)
+    if pos < 0:
+        return "", s
+    return s[:pos], s[pos + len(THINK_CLOSE):].lstrip("\n")
+
+
+def think_boundary_id(tokenizer) -> Optional[int]:
+    """Token id of the `</think>` marker (a single reserved id on Qwen3.x), or None."""
+    try:
+        tid = tokenizer.convert_tokens_to_ids(THINK_CLOSE)
+    except Exception:
+        return None
+    if isinstance(tid, int) and tid >= 0:
+        return tid
+    return None
+
+
+def answer_token_start(token_ids: list[int], boundary_id: Optional[int]) -> Optional[int]:
+    """Index where the post-think answer starts in token space (after the LAST
+    `</think>` marker), or None when the marker is absent."""
+    if boundary_id is None:
+        return None
+    start = None
+    for i, t in enumerate(token_ids):
+        if t == boundary_id:
+            start = i + 1
+    return start
+
+
+def render_prompt(example: Example, tokenizer,
+                  chat_template_kwargs: Optional[dict] = None) -> tuple[str, list[int], str]:
     user_content = example.user_template.format(question=example.question)
     if example.context:
         user_content = f"{user_content}\n\nContext: {example.context}"
@@ -17,10 +83,10 @@ def render_prompt(example: Example, tokenizer) -> tuple[str, list[int], str]:
     if example.system_prompt:
         messages.append({"role": "system", "content": example.system_prompt})
     messages.append({"role": "user", "content": user_content})
-    kwargs = {}
-    name = str(getattr(tokenizer, "name_or_path", ""))
-    if "qwen3" in name.lower():
-        kwargs["enable_thinking"] = False
+    if chat_template_kwargs is None:
+        kwargs = default_chat_template_kwargs(getattr(tokenizer, "name_or_path", ""))
+    else:
+        kwargs = dict(chat_template_kwargs)
     try:
         text = tokenizer.apply_chat_template(
             messages, add_generation_prompt=True, tokenize=False, **kwargs
@@ -34,8 +100,10 @@ def render_prompt(example: Example, tokenizer) -> tuple[str, list[int], str]:
 
 def sample_and_score(backend: InferenceBackend, example: Example, tokenizer,
                      sampling_cfg: dict, k: int, sample_seed: Optional[int] = None,
-                     logger=None) -> tuple[Generation, dict]:
-    prompt_text, prompt_ids, tmpl_hash = render_prompt(example, tokenizer)
+                     logger=None, chat_template_kwargs: Optional[dict] = None
+                     ) -> tuple[Generation, dict]:
+    prompt_text, prompt_ids, tmpl_hash = render_prompt(example, tokenizer,
+                                                       chat_template_kwargs)
     max_new = int(sampling_cfg.get("max_new_tokens", 32))
     stop_ids = sampling_cfg.get("stop_token_ids")
 

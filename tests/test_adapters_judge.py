@@ -8,7 +8,8 @@ import pytest
 
 from reppl2.config_loader import ConfigError
 from reppl2.data.adapters import (get_dataset_iterator, gsm8k_gold, mmlu_gold_letter,
-                                  normalize_gpqa_item, _render_mcq_question)
+                                  normalize_gpqa_item, _render_mcq_question,
+                                  _short_hash)
 from reppl2.judges.local import (JUDGE_PROMPT_VERSION, build_judge_messages,
                                  judge_chat_template_kwargs, judge_prompt_final_prefix)
 from reppl2.judges.systemone import (SYSTEMONE_PROMPT_VERSION, SystemOneJudge,
@@ -169,9 +170,153 @@ def test_gsm8k_adapter(tmp_path):
     assert exs[0].gold_answers == ["5"]
 
 
+# ---------- DESIGN.md 9.4 adapters on temp fixtures ----------
+
+def test_supergpqa_adapter(tmp_path):
+    p = tmp_path / "SuperGPQA-all.jsonl"
+    rows = [
+        {"uuid": "u1", "question": "Pick the circuit property",
+         "options": ["gain", "bandwidth", "noise", "drift"],
+         "answer": "gain", "answer_letter": "A", "discipline": "Engineering",
+         "field": "EE", "subfield": "Circuits", "difficulty": "middle",
+         "is_calculation": False},
+        {"uuid": "u2", "question": "Which philosopher?",
+         "options": ["a", "b", "c", "d", "e", "f", "g", "h", "i", "Kant"],
+         "answer": "Kant", "answer_letter": "J", "discipline": "Philosophy",
+         "field": "Ethics", "subfield": "Meta", "difficulty": "hard",
+         "is_calculation": False},
+    ]
+    p.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+    cfg = _cfg_with("supergpqa", {"path": str(p)})
+    exs = list(get_dataset_iterator("supergpqa", cfg, 5))
+    assert len(exs) == 2
+    assert exs[0].task == "mcq"
+    assert exs[0].gold_answers == ["A"]
+    assert "A. gain" in exs[0].question and "D. drift" in exs[0].question
+    # parser is not hardwired to A-D: the 10th option letter must work
+    assert exs[1].gold_answers == ["J"]
+    assert "J. Kant" in exs[1].question
+    assert exs[1].meta["n_options"] == 10
+    assert exs[0].meta["difficulty"] == "middle"
+
+
+def test_supergpqa_letter_out_of_range_skipped(tmp_path):
+    p = tmp_path / "supergpqa.jsonl"
+    rows = [
+        {"uuid": "bad", "question": "Q?", "options": ["x", "y"],
+         "answer_letter": "E"},                       # letter beyond option count
+        {"uuid": "ok", "question": "Q2?", "options": ["x", "y"],
+         "answer_letter": "b"},                       # lower-case letter normalized
+    ]
+    p.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+    exs = list(get_dataset_iterator("supergpqa", _cfg_with("supergpqa", {"path": str(p)}), 5))
+    assert len(exs) == 1
+    assert exs[0].gold_answers == ["B"]
+
+
+def test_supergpqa_char_prefilter(tmp_path):
+    p = tmp_path / "supergpqa.jsonl"
+    rows = [
+        {"uuid": "short", "question": "short?", "options": ["a", "b"], "answer_letter": "A"},
+        {"uuid": "long", "question": "x" * 5000, "options": ["a", "b"], "answer_letter": "A"},
+    ]
+    p.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+    cfg = _cfg_with("supergpqa", {"path": str(p), "max_question_chars": 4096})
+    exs = list(get_dataset_iterator("supergpqa", cfg, 5))
+    assert [e.sample_id for e in exs] == [f"supergpqa-{_short_hash('short')}"]
+
+
+def test_popqa_n_select_deterministic_subset(tmp_path):
+    p = tmp_path / "test.tsv"
+    lines = ["id\tquestion\tpossible_answers\ts_pop\tprop\tsubj\tsubj_id"]
+    for i in range(50):
+        lines.append(f'{i}\tQ {i}?\t"[""gold {i}""]"\t{i}\tprop\tS{i}\t{i}')
+    p.write_text("\n".join(lines) + "\n")
+    cfg = _cfg_with("popqa", {"path": str(p), "n_select": 10, "select_seed": 42})
+    first = list(get_dataset_iterator("popqa", cfg, 0))
+    again = list(get_dataset_iterator("popqa", cfg, 0))
+    # deterministic: same seed -> identical subset; subset recorded in meta
+    assert [e.sample_id for e in first] == [e.sample_id for e in again]
+    assert len(first) == 10
+    assert all(e.meta["n_select"] == 10 and e.meta["select_seed"] == 42 for e in first)
+    # a different seed selects a different subset (uniform sampling, not head-N)
+    cfg_b = _cfg_with("popqa", {"path": str(p), "n_select": 10, "select_seed": 7})
+    other = list(get_dataset_iterator("popqa", cfg_b, 0))
+    assert [e.sample_id for e in other] != [e.sample_id for e in first]
+    # num_samples (limit) caps on top of the selected subset
+    assert len(list(get_dataset_iterator("popqa", cfg, 4))) == 4
+
+
+def test_supergpqa_n_select_after_prefilter(tmp_path):
+    # selection base = ELIGIBLE rows only: the char pre-filter runs first, so
+    # n_select yields exactly that many usable items
+    p = tmp_path / "supergpqa.jsonl"
+    rows = [{"uuid": f"u{i}", "question": f"Q{i}", "options": ["a", "b"],
+             "answer_letter": "A"} for i in range(30)]
+    rows.append({"uuid": "toolong", "question": "x" * 5000,
+                 "options": ["a", "b"], "answer_letter": "A"})
+    p.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+    cfg = _cfg_with("supergpqa", {"path": str(p), "max_question_chars": 4096,
+                                  "n_select": 5, "select_seed": 42})
+    exs = list(get_dataset_iterator("supergpqa", cfg, 0))
+    assert len(exs) == 5
+    assert all("x" * 100 not in e.question for e in exs)
+
+
+def test_popqa_adapter(tmp_path):
+    p = tmp_path / "test.tsv"
+    p.write_text(
+        'id\tquestion\tpossible_answers\ts_pop\tprop\tsubj\tsubj_id\n'
+        '1\tWhat is X\'s occupation?\t"[""politician"", ""pol""]"\t25692\toccupation\tX\t42\n'
+        '2\tWhere is Y?\t"[""Paris""]"\t975\tlocation\tY\t43\n')
+    exs = list(get_dataset_iterator("popqa", _cfg_with("popqa", {"path": str(p)}), 5))
+    assert len(exs) == 2
+    assert exs[0].task == "open_qa"
+    assert exs[0].gold_answers == ["politician", "pol"]
+    assert exs[0].meta["s_pop"] == 25692
+    assert exs[0].meta["prop"] == "occupation"
+    assert exs[1].gold_answers == ["Paris"]
+
+
+def test_truthfulqa_gen_adapter(tmp_path):
+    p = tmp_path / "TruthfulQA.csv"
+    p.write_text(
+        "Type,Category,Question,Best Answer,Best Incorrect Answer,Correct Answers,"
+        "Incorrect Answers,Source\n"
+        'Adversarial,Misconceptions,"Watermelon seeds?",The seeds pass through,'
+        '"You grow watermelons","Nothing happens; The seeds pass through; You get sick",'
+        'grow,some-web-page\n')
+    exs = list(get_dataset_iterator("truthfulqa_gen", _cfg_with("truthfulqa_gen", {"path": str(p)}), 5))
+    assert len(exs) == 1
+    # best answer first, deduped against the ";"-split correct list
+    assert exs[0].gold_answers == ["The seeds pass through", "Nothing happens", "You get sick"]
+    assert exs[0].meta["question_type"] == "Adversarial"
+    assert exs[0].meta["category"] == "Misconceptions"
+    # the incorrect set must never leak into what the model is shown
+    assert "grow" not in exs[0].question
+
+
+def test_cruxeval_output_adapter(tmp_path):
+    p = tmp_path / "test.jsonl"
+    rows = [
+        {"code": "def f(nums):\n    return sorted(nums)", "input": "[3, 1, 2]",
+         "output": "[1, 2, 3]", "id": "sample_0"},
+        {"code": "", "input": "[1]", "output": "[1]", "id": "sample_1"},  # empty code skipped
+    ]
+    p.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+    exs = list(get_dataset_iterator("cruxeval_output", _cfg_with("cruxeval_output", {"path": str(p)}), 5))
+    assert len(exs) == 1
+    assert exs[0].task == "code_reasoning"
+    assert exs[0].gold_answers == ["[1, 2, 3]"]
+    assert "def f(nums):" in exs[0].question and "[3, 1, 2]" in exs[0].question
+    assert exs[0].meta["task_variant"] == "output"
+
+
 # ---------- blocked datasets stay blocked (no silent substitution) ----------
 
-@pytest.mark.parametrize("name", ["hle", "livebench", "squad", "nq"])
+@pytest.mark.parametrize("name", ["hle", "livebench", "squad", "nq",
+                                  "bigcodebench", "livecodebench", "bfcl",
+                                  "multichallenge"])
 def test_blocked_datasets_raise(name):
     with pytest.raises(ConfigError):
         list(get_dataset_iterator(name, {}, 4))

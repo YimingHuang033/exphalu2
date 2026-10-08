@@ -1,0 +1,52 @@
+{
+ "name": "bigcodebench",
+ "repo_id": "bigcode/bigcodebench",
+ "repo_type": "dataset",
+ "revision_sha": "b74c0d0bf70d2c0bc459be537895cca163007f1a",
+ "license": "apache-2.0",
+ "source_url": "https://huggingface.co/datasets/bigcode/bigcodebench/tree/b74c0d0bf70d2c0bc459be537895cca163007f1a",
+ "endpoint": "https://hf-mirror.com",
+ "design_section": "9.4",
+ "downloaded_at": "2026-10-06T14:10:45.309255+00:00",
+ "local_dir": "/mnt/data/bigcodebench",
+ "n_files": 9,
+ "total_bytes": 16590169,
+ "files": [
+  {
+   "path": ".gitattributes",
+   "size": 2307
+  },
+  {
+   "path": "README.md",
+   "size": 8828
+  },
+  {
+   "path": "data/train-00000-of-00001.parquet",
+   "size": 2385578
+  },
+  {
+   "path": "data/v0.1.0-00000-of-00001.parquet",
+   "size": 2385578
+  },
+  {
+   "path": "data/v0.1.0_hf-00000-of-00001.parquet",
+   "size": 2361151
+  },
+  {
+   "path": "data/v0.1.1-00000-of-00001.parquet",
+   "size": 2361042
+  },
+  {
+   "path": "data/v0.1.2-00000-of-00001.parquet",
+   "size": 2361787
+  },
+  {
+   "path": "data/v0.1.3-00000-of-00001.parquet",
+   "size": 2361788
+  },
+  {
+   "path": "data/v0.1.4-00000-of-00001.parquet",
+   "size": 2362110
+  }
+ ]
+}

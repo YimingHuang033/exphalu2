@@ -15,7 +15,9 @@ from .interventions import neutralize_unit, EditError
 from .methods.common import AggregatorConfig
 from .methods.reppl_a import reppl_a_inner
 from .methods.reppl_b import reppl_b_inner
-from .scoring import compute_outer, render_prompt, valid_len
+from .scoring import (compute_outer, render_prompt, valid_len, split_think,
+                      think_boundary_id, answer_token_start, THINK_CLOSE,
+                      resolve_chat_template_kwargs)
 from .segmentation import segment_input, unit_token_spans, SegmentationError
 from .types import Generation, SampledOutput
 
@@ -43,6 +45,72 @@ def _groups_to_clusters(semantic_ids: list[int]) -> list[list[int]]:
 
 DEFAULT_METHODS = ["reppl-a", "outer-perplexity", "lnpe", "eigenscore-last",
                    "semantic-entropy-lexical", "length"]
+
+TEXT_SEMANTIC_METHODS = ("semantic-entropy", "semantic-entropy-lexical", "sese",
+                         "semantic-energy")
+
+
+def sample_answer_views(gen: Generation, tokenizer, eos: set,
+                        thinking_on: bool = False) -> dict:
+    """Post-think answer views of the K sampled outputs for the text-semantic
+    methods (SE family, SeSE): they model the answer distribution, not the
+    reasoning trace. Each view slices text and token-aligned logprobs after the
+    LAST `</think>` marker; without the marker the view equals the full output
+    (thinking disabled or plain models -> behaviour unchanged).
+
+    thinking_on (chat template enable_thinking): a sample WITHOUT the closing
+    marker is a truncated think — it has no answer and counts into
+    n_missing_answer so the semantic methods exclude the sample set honestly.
+
+    Returns texts / token_ids / token_logprobs slices plus integrity flags:
+    n_missing_answer and token_boundary_ok (marker in text but not findable in
+    token space).
+    """
+    boundary = think_boundary_id(tokenizer)
+    texts, id_slices, lp_slices = [], [], []
+    n_missing = 0
+    token_boundary_ok = True
+    for s in gen.samples:
+        marker_in_text = THINK_CLOSE in s.text
+        _, ans = split_think(s.text)
+        if marker_in_text:
+            start = answer_token_start(s.token_ids, boundary)
+            if start is None:
+                token_boundary_ok = False
+                start = 0
+            if not ans.strip():
+                n_missing += 1
+                texts.append("")
+                id_slices.append([])
+                lp_slices.append([])
+                continue
+        elif thinking_on:
+            # asked to think but no </think> in the completion: truncated inside
+            # the reasoning trace (DESIGN 9.5.4 — reported, never scored)
+            n_missing += 1
+            texts.append("")
+            id_slices.append([])
+            lp_slices.append([])
+            continue
+        else:
+            start = 0
+        texts.append(ans)
+        id_slices.append(list(s.token_ids[start:]))
+        lp_slices.append(list(s.token_logprobs[start:]))
+    return {"texts": texts, "token_ids": id_slices, "token_logprobs": lp_slices,
+            "n_samples": len(gen.samples), "n_missing_answer": n_missing,
+            "token_boundary_ok": token_boundary_ok}
+
+
+def _semantic_view_invalid(views: dict, answer_view: str) -> Optional[str]:
+    if answer_view != "post-think":
+        return None
+    if views["n_missing_answer"] > 0:
+        return (f"thinking output truncated: {views['n_missing_answer']}/{views['n_samples']} "
+                "samples have no answer after </think> (excluded honestly, not scored)")
+    if not views["token_boundary_ok"]:
+        return "answer token boundary (</think>) not resolvable in token space"
+    return None
 
 
 def detect_one(backend, tokenizer, cfg, gen: Generation, ex, entailment_model=None,
@@ -102,19 +170,34 @@ def detect_one(backend, tokenizer, cfg, gen: Generation, ex, entailment_model=No
         except BackendError as e:
             out["methods"]["eigenscore-last"] = {"risk": None, "inner": None, "outer": None,
                                                  "validity": "invalid", "reason": str(e)}
+    thinking_on = bool(
+        (resolve_chat_template_kwargs(cfg, tokenizer) or {}).get("enable_thinking", False))
+    out["thinking"] = {
+        "enabled": thinking_on,
+        "answer_view": str((cfg.get("thinking") or {}).get("answer_view", "post-think")),
+        "full_output_methods": ["outer-perplexity", "lnpe", "length", "eigenscore-last",
+                                "d-score-last", "reppl-a", "reppl-b", "reppl-ab"],
+        "post_think_methods": ["semantic-entropy", "semantic-entropy-lexical", "sese",
+                               "semantic-energy"],
+    }
     if any(m in methods for m in ("semantic-entropy", "semantic-entropy-lexical")):
+        answer_view = str((cfg.get("thinking") or {}).get("answer_view", "post-think"))
+        views = sample_answer_views(gen, tokenizer, eos, thinking_on=thinking_on)
+        view_invalid = _semantic_view_invalid(views, answer_view)
         for name in ("semantic-entropy", "semantic-entropy-lexical"):
             if name not in methods:
                 continue
             model = entailment_model if name == "semantic-entropy" else None
             try:
+                if view_invalid:
+                    raise BackendError(view_invalid)
                 v, info = semantic_entropy_risk(
-                    [s.text for s in gen.samples],
-                    [s.token_logprobs for s in gen.samples],
+                    views["texts"], views["token_logprobs"],
                     entailment_model=model,
-                    eos_token_ids=eos, sample_token_ids=[s.token_ids for s in gen.samples])
+                    eos_token_ids=eos, sample_token_ids=views["token_ids"])
                 out["methods"][name] = {"risk": v, "inner": None, "outer": None,
-                                        "validity": "ok", "reason": str(info)}
+                                        "validity": "ok",
+                                        "reason": str({**info, "answer_view": answer_view})}
             except BackendError as e:
                 out["methods"][name] = {"risk": None, "inner": None, "outer": None,
                                         "validity": "invalid", "reason": str(e)}
@@ -139,31 +222,43 @@ def detect_one(backend, tokenizer, cfg, gen: Generation, ex, entailment_model=No
                 raise BackendError("sese models not loaded (NLI / sentence-embedding)")
             nli, embedder = sese_models
             scfg = cfg.get("sese") or {}
-            v, info = sese_risk([s.text for s in gen.samples], nli, embedder,
+            answer_view = str((cfg.get("thinking") or {}).get("answer_view", "post-think"))
+            views = sample_answer_views(gen, tokenizer, eos, thinking_on=thinking_on)
+            view_invalid = _semantic_view_invalid(views, answer_view)
+            if view_invalid:
+                raise BackendError(view_invalid)
+            v, info = sese_risk(views["texts"], nli, embedder,
                                 tree_depth=int(scfg.get("tree_depth", 2)),
                                 w_entail=float(scfg.get("w_entail", 0.65)),
                                 similarity_threshold=float(scfg.get("similarity_threshold", 0.3)))
             out["methods"]["sese"] = {"risk": v, "inner": None, "outer": None,
-                                      "validity": "ok", "reason": str(info)}
+                                      "validity": "ok",
+                                      "reason": str({**info, "answer_view": answer_view})
+                                      if isinstance(info, dict) else str(info)}
         except BackendError as e:
             out["methods"]["sese"] = {"risk": None, "inner": None, "outer": None,
                                       "validity": "invalid", "reason": str(e)}
 
     if "semantic-energy" in methods:
         try:
-            # clusters come from the same grouping the semantic-entropy baseline uses
+            answer_view = str((cfg.get("thinking") or {}).get("answer_view", "post-think"))
+            views = sample_answer_views(gen, tokenizer, eos, thinking_on=thinking_on)
+            view_invalid = _semantic_view_invalid(views, answer_view)
+            if view_invalid:
+                raise BackendError(view_invalid)
+            # clusters come from the same grouping the semantic-entropy baseline uses,
+            # over the same post-think answer views the energy is computed on
             _, se_info = semantic_entropy_risk(
-                [s.text for s in gen.samples],
-                [s.token_logprobs for s in gen.samples],
+                views["texts"], views["token_logprobs"],
                 entailment_model=entailment_model, eos_token_ids=eos,
-                sample_token_ids=[s.token_ids for s in gen.samples])
+                sample_token_ids=views["token_ids"])
             clusters = _groups_to_clusters(se_info["semantic_ids"])
-            v, info = semantic_energy_risk(
-                [s.token_logprobs for s in gen.samples], clusters)
+            v, info = semantic_energy_risk(views["token_logprobs"], clusters)
             out["methods"]["semantic-energy"] = {"risk": v, "inner": None, "outer": None,
                                                  "validity": "ok",
                                                  "reason": str({**info,
-                                                                "grouping": se_info.get("variant")})}
+                                                                "grouping": se_info.get("variant"),
+                                                                "answer_view": answer_view})}
         except BackendError as e:
             out["methods"]["semantic-energy"] = {"risk": None, "inner": None, "outer": None,
                                                  "validity": "invalid", "reason": str(e)}
@@ -299,7 +394,10 @@ def _detect_b(backend, tokenizer, cfg, gen: Generation, ex, agg_cfg, outer, eos,
             continue
         ex_edit = ex.model_copy() if hasattr(ex, "model_copy") else _copy_ex(ex)
         ex_edit.context, ex_edit.question = new_ctx, new_q
-        _, edit_prompt_ids, _ = render_prompt(ex_edit, tokenizer)
+        # edited-prompt replays must render with the SAME chat-template kwargs as
+        # the original run (e.g. enable_thinking), or token spans misalign
+        _, edit_prompt_ids, _ = render_prompt(
+            ex_edit, tokenizer, resolve_chat_template_kwargs(cfg, tokenizer))
         if edit_prompt_ids == gen.prompt_token_ids:
             edit_records.append({"unit_id": u["unit_id"], "skipped": True,
                                  "reason": "edited prompt identical to original"})

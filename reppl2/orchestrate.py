@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import platform
+import re
 import time
 from pathlib import Path
 from typing import Optional
@@ -17,7 +18,8 @@ from .judges.systemone import SystemOneJudge
 from .logging_utils import save_json, load_json
 from .baselines.registry import METHOD_REGISTRY
 from .pipeline import detect_one, load_generation, DEFAULT_METHODS
-from .scoring import sample_and_score
+from .scoring import (sample_and_score, resolve_chat_template_kwargs, split_think,
+                      THINK_CLOSE)
 from .types import Example
 
 try:
@@ -169,13 +171,27 @@ def cmd_generate(cfg, logger, run_dir, force=False) -> dict:
     eos = eos_ids(tokenizer)
     sampling_cfg.setdefault("stop_token_ids", list(eos))
     k = int(sampling_cfg.get("k", 5))
+    # reasoning-model support: run-level chat_template_kwargs > model registry entry
+    # > None (render_prompt falls back to the name-based default)
+    ctk = resolve_chat_template_kwargs(cfg, tokenizer)
+    thinking_on = bool((ctk or {}).get("enable_thinking", False))
+    if thinking_on:
+        logger.info(f"[gen] thinking mode ON (chat_template_kwargs={ctk}); "
+                    f"max_new_tokens={sampling_cfg.get('max_new_tokens')} must cover "
+                    f"think + answer (DESIGN 9.5.4)")
 
     gens, meta = [], []
+    n_no_answer = 0
     t_all = time.time()
     for ex in examples:
         try:
             gen, cost = sample_and_score(backend, ex, tokenizer, sampling_cfg, k=k,
-                                         sample_seed=sampling_cfg.get("seed"))
+                                         sample_seed=sampling_cfg.get("seed"),
+                                         chat_template_kwargs=ctk)
+            _, ans = split_think(gen.greedy.text)
+            if thinking_on and (not ans.strip()
+                                or THINK_CLOSE not in gen.greedy.text):
+                n_no_answer += 1
             gens.append(gen)
             meta.append({"sample_id": ex.sample_id, "validity": "ok",
                          "reason": "", "gen_time_s": cost["gen_time_s"]})
@@ -188,6 +204,9 @@ def cmd_generate(cfg, logger, run_dir, force=False) -> dict:
     payload = {
         "model": require(cfg, "model"), "model_path": model_path, "backend": backend.name,
         "sampling_config": sampling_cfg,
+        "thinking": {"enabled": thinking_on, "chat_template_kwargs": ctk or {},
+                     "n_greedy_no_answer": n_no_answer,
+                     "answer_view": "post-think (judge/labels exclude the think part)"},
         "generations": [g.to_dict() for g in gens],
         "per_sample_meta": meta,
         "timing": {"total_s": time.time() - t_all},
@@ -198,9 +217,14 @@ def cmd_generate(cfg, logger, run_dir, force=False) -> dict:
         "model": require(cfg, "model"), "backend": backend.name,
         "trajectories": [{"sample_id": g.sample_id, "prompt_text": g.prompt_text,
                           "greedy_text": g.greedy.text,
+                          "greedy_think_text": split_think(g.greedy.text)[0],
+                          "greedy_answer_text": split_think(g.greedy.text)[1],
                           "sample_texts": [s.text for s in g.samples]} for g in gens]})
     backend.close()
-    logger.info(f"[generate] done: {len(gens)} ok / {len(meta)}")
+    logger.info(f"[generate] done: {len(gens)} ok / {len(meta)}"
+                + (f"; greedy outputs without answer after think: {n_no_answer} "
+                   f"(truncation; NOT natural hallucination, DESIGN 9.5.4)"
+                   if thinking_on and n_no_answer else ""))
     return payload
 
 
@@ -476,11 +500,57 @@ def cmd_judge(cfg, logger, run_dir, force=False) -> dict:
     judge, backend = build_judge(cfg, jspec, logger)
 
     per_sample = []
+    n_no_answer = 0
+    n_no_pattern = 0
+    # dataset-level answer-format gate (DESIGN 9.5.3): outputs missing the
+    # instructed answer marker carry no parseable choice — truncated reasoning or
+    # instruction non-compliance is a format error, never a hallucination label
+    ds_cfg = (cfg.get("datasets") or {}).get(str(dataset_payload.get("dataset") or "")) or {}
+    require_pattern = str(ds_cfg.get("require_pattern") or "")
+    # authoritative flag from the generation stage (target-model thinking mode)
+    thinking_on = bool((gen_payload.get("thinking") or {}).get("enabled", False))
     t_all = time.time()
     for g in gen_payload["generations"]:
         gen = load_generation(g)
         ex = ex_by_id[gen.sample_id]
-        r = judge.judge(gen.sample_id, ex.question, gen.greedy.text,
+        # reference-aware judging sees the POST-THINK answer only; the reasoning
+        # trace is the model's own process, not the claim under test
+        greedy_text = gen.greedy.text
+        _, answer_text = split_think(greedy_text)
+        truncated_think = thinking_on and THINK_CLOSE not in greedy_text
+        if not answer_text.strip() or truncated_think:
+            # thinking output truncated before </think>: judging reasoning ramble
+            # (or an empty answer) would fake a hallucination label (DESIGN 9.5.4)
+            n_no_answer += 1
+            per_sample.append({
+                "sample_id": gen.sample_id, "judge_name": "vllm-local",
+                "hard_verdict": None, "continuous_score": None,
+                "score_type": "label_likelihood", "raw_output": "",
+                "coverage": "no_answer_after_think",
+                "reason": ("greedy output truncated inside think (no </think>); "
+                           "no judgeable answer"),
+                "prompt_version": judge.prompt_version, "model_revision": "",
+                "timing_s": 0.0})
+            logger.warning(f"[judge] {gen.sample_id}: SKIPPED (no answer after think; "
+                           "truncation excluded from labels)")
+            continue
+        if require_pattern and not re.search(require_pattern, answer_text, re.I):
+            n_no_pattern += 1
+            per_sample.append({
+                "sample_id": gen.sample_id, "judge_name": "vllm-local",
+                "hard_verdict": None, "continuous_score": None,
+                "score_type": "label_likelihood", "raw_output": "",
+                "coverage": "no_parseable_answer",
+                "reason": (f"answer missing required marker /{require_pattern}/ "
+                           "(truncated or instruction non-compliance); excluded "
+                           "from labels, not counted as hallucination"),
+                "prompt_version": judge.prompt_version, "model_revision": "",
+                "timing_s": 0.0})
+            logger.warning(f"[judge] {gen.sample_id}: SKIPPED (no parseable answer "
+                           f"marker /{require_pattern}/; format exclusion, "
+                           "DESIGN 9.5.3)")
+            continue
+        r = judge.judge(gen.sample_id, ex.question, answer_text,
                         context=ex.context or "", gold_answers=list(ex.gold_answers or []))
         per_sample.append(r.__dict__)
         logger.info(f"[judge] {gen.sample_id}: verdict={r.hard_verdict} "
@@ -490,6 +560,9 @@ def cmd_judge(cfg, logger, run_dir, force=False) -> dict:
         "judge_provider": jspec["provider"], "judge_adapter": jspec["adapter"],
         "prompt_version": judge.prompt_version,
         "reference_aware": True,
+        "answer_view": "post-think",
+        "n_skipped_no_answer": n_no_answer,
+        "n_skipped_no_parseable_answer": n_no_pattern,
         "backend": "systemone-http" if jspec["adapter"] == "systemone" else backend.name,
         "per_sample": per_sample,
         "timing": {"total_s": time.time() - t_all},
