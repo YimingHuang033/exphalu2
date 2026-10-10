@@ -33,7 +33,9 @@ echo "[$(date '+%F %T')] waiting: gpu=$GPU pattern='${WAIT_PATTERN}' max_wait=${
 
 start=$(date +%s)
 if [ -n "$WAIT_PATTERN" ]; then
-  while pgrep -f "$WAIT_PATTERN" > /dev/null; do
+  # pgrep -f also matches THIS script: the pattern is literally one of our
+  # arguments. Exclude our own pid ($$) or the wait never terminates.
+  while pgrep -f "$WAIT_PATTERN" | grep -v "^$$\$" | grep -q .; do
     if [ $(( $(date +%s) - start )) -gt "$MAX_WAIT" ]; then
       echo "[$(date '+%F %T')] TIMEOUT waiting for pattern; nothing launched (exit 1)"
       exit 1
