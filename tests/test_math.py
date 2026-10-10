@@ -194,3 +194,46 @@ def test_probability_baselines_reject_misaligned_logprobs():
 
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-q"]))
+
+# C/D: J=1 remains informative, sign/direction is not lost to a norm or softmax.
+def test_cde_opposite_equal_norm_responses():
+    from reppl2.methods.reppl_c import reppl_c_inner
+    from reppl2.methods.reppl_d import reppl_d_inner
+    d = np.array([[[1., 0.]], [[-1., 0.]]])
+    c = reppl_c_inner(d, [1., 0.], tau=1.)
+    assert c['inner'] == pytest.approx(np.log1p(.25))
+    assert c['mu'] == [0.]
+    out = reppl_d_inner(d, tau=1.)
+    assert out['inner'] == pytest.approx(.5)
+    assert out['norm_only_inner'] == 0.
+
+
+def test_cde_stable_influence_and_absent_signal_differ():
+    from reppl2.methods.reppl_c import reppl_c_inner
+    from reppl2.methods.reppl_d import reppl_d_inner
+    d = np.ones((3, 1, 2))
+    assert reppl_c_inner(d, [1., 0.], .1)['inner'] == 0.
+    assert reppl_d_inner(d, .1)['inner'] == 0.
+    for result in (reppl_c_inner(d * 0, [1., 0.], .1), reppl_d_inner(d * 0, .1)):
+        assert result['inner'] is None
+        assert result['validity'] == 'low_signal'
+
+
+def test_cde_partial_coverage_and_direction_orthogonality():
+    from reppl2.methods.reppl_c import reppl_c_inner
+    from reppl2.methods.reppl_d import reppl_d_inner
+    d = np.array([[[1., 0.], [0., 0.]], [[-1., 0.], [0., 0.]]])
+    assert reppl_c_inner(d, [0., 1.], .1)['inner'] is None
+    for result in (reppl_c_inner(d, [1., 0.], .1), reppl_d_inner(d, .1)):
+        assert result['coverage'] == .5
+        assert len(result['components']) == 1
+
+
+@pytest.mark.parametrize('bad', [np.ones((1, 1, 2)), np.full((2, 1, 2), np.nan)])
+def test_cde_invalid_responses_rejected(bad):
+    from reppl2.methods.reppl_c import reppl_c_inner
+    from reppl2.methods.reppl_d import reppl_d_inner
+    with pytest.raises(ValueError):
+        reppl_c_inner(bad, [1., 0.], .1)
+    with pytest.raises(ValueError):
+        reppl_d_inner(bad, .1)

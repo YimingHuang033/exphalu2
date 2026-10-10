@@ -44,3 +44,17 @@ METHOD_REGISTRY = {
     "lafact": {"family": "internal-state", "direction": "higher=hallucination", "status": "planned"},
     "laab": {"family": "fusion", "direction": "higher=hallucination", "status": "planned"},
 }
+
+# These methods use the frozen-generation CDE runner, not the legacy A/B CLI.
+for _name in ("reppl-c", "reppl-d", "reppl-e", "reppl-c-inner", "reppl-d-inner",
+              "reppl-e-inner", "reppl-c-gentle", "reppl-d-gentle", "reppl-e-gentle"):
+    METHOD_REGISTRY[_name] = {
+        "family": "reppl", "direction": "higher=hallucination", "status": "implemented",
+        "entrypoint": "reppl2.cde",
+        "note": "native propagation experiment; GPU/performance validation pending; E is supervised OOF",
+    }
+for _name in ("c-random-direction-inner", "d-norm-only-inner", "d-output-variance-inner"):
+    METHOD_REGISTRY[_name] = {
+        "family": "control", "direction": "higher=hallucination", "status": "implemented",
+        "entrypoint": "reppl2.cde",
+    }

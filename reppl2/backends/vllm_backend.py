@@ -65,6 +65,8 @@ class VLLMBackend(InferenceBackend):
                 dtype=str(self.cfg.get("dtype", "bfloat16")),
                 seed=int(self.cfg.get("seed", 42)),
             )
+            if "model_impl" in self.cfg:
+                kwargs["model_impl"] = self.cfg["model_impl"]
             self._gen_llm = self._load_with_retry(kwargs, "generate runner")
         return self._gen_llm
 
@@ -85,6 +87,8 @@ class VLLMBackend(InferenceBackend):
                 dtype=str(self.cfg.get("dtype", "bfloat16")),
                 seed=int(self.cfg.get("seed", 42)),
             )
+            if "model_impl" in self.cfg:
+                kwargs["model_impl"] = self.cfg["model_impl"]
             self._pool_llm = self._load_with_retry(kwargs, "pooling runner")
         return self._pool_llm
 

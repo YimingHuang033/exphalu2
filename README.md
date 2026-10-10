@@ -2,6 +2,8 @@
 
 实现 [DESIGN.md](DESIGN.md) 的 RePPL 2.0 A/B 方法与工程系统：基于推理引擎（vLLM 为主）的跨采样传播不确定性幻觉检测，附带本地 LLM judge 与概率/熵族 baseline，统一评测输出 CSV。
 
+**C–E 新实验入口**：读取冻结的 SuperGPQA/PopQA run，以原生 vLLM 末层状态测量语义传播贡献的不确定性。见 [实现说明](docs/CDE_IMPLEMENTATION.md)、[云端实验 TODO](TODO.md) 与 [配置](config/cde.yaml)。通过 `scripts/generation_eval/run_cde.sh` 分阶段运行 prepare / detect / train-e / evaluate；使用单独输出目录，不覆盖 A/B 或源答案。CPU 合同测试已通过，新增路径的 GPU 验收与性能结论待云端实验。
+
 - **推理引擎为主 + 保留旧端口**：默认 vLLM 原生（generation runner 采样/logprob + pooling runner `token_embed` 逐 token 末层状态）；同时保留旧 exphalu 的 Transformers 前向作为 legacy 兼容端口（`backend: transformers`），用于引擎暂不支持的架构。SGLang 接口就位但未安装，状态 blocked。
 - **当前验证模型**：`Qwen3.5-4B`（`/home/tim/Proj/resource` 副本）、`Qwen2.5-0.5B/1.5B/7B-Instruct` 与 `Qwen3-1.7B/8B`（`/mnt/data`，可读性已复验）。`/mnt/data/Qwen3-4B` 因磁盘坏道 blocked（见"已知问题"）。Judge：`gpt-oss-20b`（`/mnt/data`）。
 
